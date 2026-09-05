@@ -1,0 +1,44 @@
+{% extends "layout/base.html" %}
+{% block title %}마이페이지{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>마이페이지</h1><p>내 계정 정보와 캠페인 현황</p></div></div>
+
+<div class="lowgrid">
+  <div>
+    <div class="card"><div class="ch"><h3>내 정보</h3></div><div class="cb">
+      <table style="width:100%"><tbody>
+        <tr><td class="mut" style="width:110px;padding:6px 0">아이디</td><td><b>{{ current_user.username }}</b></td></tr>
+        <tr><td class="mut" style="padding:6px 0">이름</td><td>{{ current_user.nickname }}</td></tr>
+        <tr><td class="mut" style="padding:6px 0">권한</td><td>{{ '관리자' if current_user.role == 'admin' else '일반' }}</td></tr>
+        <tr><td class="mut" style="padding:6px 0">회사</td><td>{{ current_user.company or '-' }}</td></tr>
+        <tr><td class="mut" style="padding:6px 0">가입일</td><td>{{ current_user.created_at | fmt_date('%Y.%m.%d') }}</td></tr>
+      </tbody></table>
+    </div></div>
+
+    <div class="card" style="margin-top:12px"><div class="ch"><h3>비밀번호 변경</h3></div><div class="cb">
+      <form method="post" action="/my/password">
+        <div class="f"><input class="in" type="password" name="current" placeholder="현재 비밀번호" required autocomplete="current-password"></div>
+        <div class="f"><input class="in" type="password" name="password" placeholder="새 비밀번호 (8자 이상)" required minlength="8" autocomplete="new-password"></div>
+        <div class="f"><input class="in" type="password" name="password2" placeholder="새 비밀번호 확인" required autocomplete="new-password"></div>
+        <button class="btn pri" type="submit">변경</button>
+      </form>
+    </div></div>
+  </div>
+
+  <div class="card"><div class="ch"><h3>캠페인 현황</h3><a class="more" href="/campaign/store">전체보기<i data-lucide="chevron-right" class="i i14"></i></a></div><div class="cb">
+    <div style="display:flex;gap:16px;margin-bottom:14px">
+      <div><div class="mut" style="font-size:12px">진행중</div><b style="font-size:20px">{{ counts.get('running', 0) }}</b></div>
+      <div><div class="mut" style="font-size:12px">완료</div><b style="font-size:20px">{{ done_count }}</b></div>
+      <div><div class="mut" style="font-size:12px">중단</div><b style="font-size:20px">{{ counts.get('stopped', 0) }}</b></div>
+    </div>
+    <ul class="homelist">
+    {% for c in recent %}
+      <li><span class="st {{ status_class.get(c.status, '') }}" style="font-size:11px">{{ status_label.get(c.status, c.status) }}</span>
+        <a href="/campaign/store?q={{ c.order_no }}">{{ c.main_keyword }}</a><span class="hnick">{{ c.start_date | fmt_date }}~</span></li>
+    {% else %}
+      <li><span class="hnick">캠페인이 없습니다.</span></li>
+    {% endfor %}
+    </ul>
+  </div></div>
+</div>
+{% endblock %}

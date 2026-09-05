@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ crumb_label }}{% endblock %} — {{ APP_NAME }}</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo-tripleup.svg') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme-tripleup.css') }}">
+{% block head %}{% endblock %}
+</head>
+<body{% if is_admin_path %} class="admin"{% endif %}>
+{% if strip and strip.on and strip.text %}
+<a class="topstrip" id="topstrip" href="{{ strip.link or '#' }}" style="background:{{ strip.bg }}">
+  <b>{{ strip.text }}</b>
+  <button type="button" id="stripX" aria-label="닫기">&times;</button>
+</a>
+{% endif %}
+<div class="app">
+{% include "layout/sidebar.html" %}
+<div class="side-scrim"></div>
+<div class="main">
+  {% if request.endpoint != 'main.dashboard' %}{% include "layout/header.html" %}{% endif %}
+  <section class="page on">
+    {% with msgs = get_flashed_messages() %}{% if msgs %}<div class="flash">{% for m in msgs %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+    {% block content %}{% endblock %}
+  </section>
+</div>
+</div>
+{% include "layout/bottom_tab.html" %}
+{% if request.endpoint == 'main.dashboard' %}
+<button class="help-float" type="button" id="helpFloat"><i data-lucide="circle-help" class="i"></i><span>도움말</span></button>
+<div class="modal" id="helpModal"><div class="modal-box" style="max-width:460px">
+  <div style="display:flex;align-items:center;margin-bottom:14px"><h3>이렇게 진행돼요</h3><button class="icon-btn" type="button" id="helpX" style="margin-left:auto"><i data-lucide="x" class="i"></i></button></div>
+  <ol class="steps">
+    <li><div><b>카카오 3초 회원가입</b><span>닉네임·연락처만 입력하면 끝</span></div></li>
+    <li><div><b>채널 선택 → 캠페인 생성</b><span>플레이스 · 쇼핑스토어 · 쿠팡 중 선택</span></div></li>
+    <li><div><b>매체사 · 기간 · 수량 설정</b><span>키워드는 직접 입력, 효율은 게이지로 확인</span></div></li>
+    <li><div><b>카드 결제 → 검수 → 구동</b><span>13:30 이전 접수는 당일 구동, 이후는 익일</span></div></li>
+  </ol>
+  <a class="btn pri" href="/campaign/place/new" style="width:100%;margin-top:14px">첫 캠페인 만들기</a>
+</div></div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var m = document.getElementById('helpModal');
+  document.getElementById('helpFloat').addEventListener('click', function () { m.classList.add('on'); });
+  document.getElementById('helpX').addEventListener('click', function () { m.classList.remove('on'); });
+  m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('on'); });
+});
+</script>
+<a class="kakao-float" href="{{ KAKAO_CHAT_URL }}" target="_blank" rel="noopener" aria-label="카카오톡 바로상담">
+  <svg viewBox="0 0 24 24"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.2 4.6 6.6L5.5 21l4.6-2.7c.6.1 1.2.1 1.9.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>
+  <span>바로상담</span>
+</a>
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

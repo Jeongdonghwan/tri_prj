@@ -1,0 +1,30 @@
+{% extends "layout/base.html" %}
+{% from "macros/pagination.html" import pager %}
+{% block title %}로그 기록{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>로그 기록</h1><p>로그인 · 계정 발급/수정 · 캠페인 처리 등 모든 기록 (총 {{ total | fmt_num }}건)</p></div></div>
+<div class="card"><div class="cb" style="padding-top:6px">
+  <form class="tbar" method="get" style="flex-wrap:wrap;gap:8px">
+    <div class="search"><i data-lucide="search" class="i"></i><input class="in" name="q" value="{{ q or '' }}" placeholder="아이디 · 이름"></div>
+    <select class="sel-in" name="action" onchange="this.form.submit()">
+      <option value="">전체 구분</option>
+      {% for a in actions %}<option value="{{ a }}"{% if a == action %} selected{% endif %}>{{ action_label.get(a, a) }}</option>{% endfor %}
+    </select>
+    <input class="in" type="date" name="date_from" value="{{ date_from or '' }}" style="width:auto" onchange="this.form.submit()">
+    <span class="thin">~</span>
+    <input class="in" type="date" name="date_to" value="{{ date_to or '' }}" style="width:auto" onchange="this.form.submit()">
+    {% if q or action or date_from or date_to %}<a class="btn sec sm" href="/admin/logs">초기화</a>{% endif %}
+  </form>
+  <div style="overflow-x:auto;margin:0 -18px"><table><thead><tr><th>일시</th><th>구분</th><th>행위자</th><th>내용</th></tr></thead><tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="num mut" style="white-space:nowrap">{{ r.created_at | fmt_date('%Y.%m.%d %H:%M:%S') }}</td>
+      <td><span class="tag{% if r.action == 'login' %} t-pin{% endif %}">{{ action_label.get(r.action, r.action) }}</span></td>
+      <td><b>{{ r.admin_username or '-' }}</b>{% if r.admin_name and r.admin_name != r.admin_username %} <span class="mut">{{ r.admin_name }}</span>{% endif %}</td>
+      <td>{{ r.summary or '-' }}</td>
+    </tr>
+    {% else %}<tr><td colspan="4"><div class="empty">기록이 없습니다.</div></td></tr>{% endfor %}
+  </tbody></table></div>
+  {{ pager(page, total_pages, 'admin.logs', q=q, action=action, date_from=date_from, date_to=date_to) }}
+</div></div>
+{% endblock %}

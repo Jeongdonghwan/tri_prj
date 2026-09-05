@@ -1,0 +1,29 @@
+{% extends "layout/base.html" %}
+{% block title %}로그인{% endblock %}
+{% block content %}
+<div style="max-width:400px;margin:64px auto 0">
+  <div class="card" style="padding:36px 32px 28px;text-align:center">
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding-bottom:8px">
+      <img src="{{ url_for('static', filename='img/logo-tripleup.svg') }}" alt="{{ APP_NAME }}" style="height:34px;width:auto">
+      <span style="font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.02em;line-height:1">트리플업</span>
+    </div>
+    <p class="thin" style="margin-bottom:22px">쇼핑 캠페인 · 순위 관리</p>
+
+    <form method="post" action="/auth/login{% if next_url %}?next={{ next_url | urlencode }}{% endif %}" style="text-align:left">
+      <div class="f"><input class="in" type="text" name="username" placeholder="아이디" required autocomplete="username" autofocus></div>
+      <div class="f"><input class="in" type="password" name="password" placeholder="비밀번호" required autocomplete="current-password"></div>
+      <button class="btn pri lg" type="submit" style="width:100%">로그인</button>
+    </form>
+    <p class="thin" style="font-size:12px;margin-top:14px">계정은 관리자가 발급합니다. 발급 문의는 담당자에게 연락해주세요.</p>
+
+    {% if dev_mode %}
+    <div style="border-top:1px solid var(--border);margin:20px 0 14px"></div>
+    <div class="thin" style="font-size:12px;margin-bottom:8px">개발용 로그인 <span style="color:var(--warn)">(DEV_LOGIN=1 · DEBUG 전용)</span></div>
+    <div style="display:flex;gap:6px;justify-content:center">
+      <a class="btn sec sm" href="/auth/dev-login?as=user{% if next_url %}&next={{ next_url | urlencode }}{% endif %}">일반(demo)</a>
+      <a class="btn sec sm" href="/auth/dev-login?as=admin">관리자(admin)</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

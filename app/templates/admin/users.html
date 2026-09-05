@@ -1,0 +1,57 @@
+{% extends "layout/base.html" %}
+{% from "macros/pagination.html" import pager %}
+{% block title %}계정 관리{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>계정 관리</h1><p>회원가입 없이 여기서 계정을 발급합니다.</p></div>
+  <button class="btn pri" type="button" data-modal="#userCreate"><i data-lucide="user-plus" class="i i14"></i> 계정 발급</button></div>
+<div class="card"><div class="cb" style="padding-top:6px">
+  <div class="tabs"><a href="/admin/users"><button type="button"{% if not status %} class="on"{% endif %}>전체<em>{{ counts.values() | sum }}</em></button></a><a href="/admin/users?status=active"><button type="button"{% if status == 'active' %} class="on"{% endif %}>정상<em>{{ counts.get('active', 0) }}</em></button></a><a href="/admin/users?status=suspended"><button type="button"{% if status == 'suspended' %} class="on"{% endif %}>정지<em>{{ counts.get('suspended', 0) }}</em></button></a></div>
+  <form class="tbar" method="get">{% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}<div class="search"><i data-lucide="search" class="i"></i><input class="in" name="q" value="{{ q or '' }}" placeholder="아이디 · 이름 · 회사"></div></form>
+  <div style="overflow-x:auto;margin:0 -18px"><table><thead><tr><th>아이디</th><th>이름</th><th>권한</th><th>회사</th><th style="text-align:right">캠페인</th><th>메모</th><th>최근 로그인</th><th>상태</th><th></th></tr></thead><tbody>
+    {% for u in rows %}
+    <tr><td><b>{{ u.username }}</b></td><td>{{ u.nickname }}</td>
+      <td>{% if u.role == 'admin' %}<span class="tag t-pin">관리자</span>{% else %}<span class="mut">일반</span>{% endif %}</td>
+      <td>{{ u.company or '-' }}</td>
+      <td class="num" style="text-align:right">{{ u.campaign_cnt }}{% if u.running_cnt %} <span class="mut">(진행 {{ u.running_cnt }})</span>{% endif %}</td>
+      <td class="mut ellip" style="max-width:160px">{{ u.memo or '' }}</td>
+      <td class="num mut">{{ u.last_login_at | fmt_date('%Y.%m.%d %H:%M') if u.last_login_at else '-' }}</td>
+      <td>{% if u.status == 'active' %}<span class="st s-run">정상</span>{% else %}<span class="st s-rej">정지</span>{% endif %}</td>
+      <td><div class="rowact" style="opacity:1">
+        <button type="button" data-modal="#userEdit{{ u.id }}">수정</button>
+        {% if u.id != current_user.id %}<form method="post" action="/admin/users/{{ u.id }}/status?q={{ q or '' }}" onsubmit="return confirm('상태를 변경할까요?')"><button type="submit"{% if u.status == 'active' %} style="color:var(--danger)"{% endif %}>{{ '정지' if u.status == 'active' else '정지 해제' }}</button></form>{% endif %}
+      </div></td></tr>
+    {% else %}<tr><td colspan="9"><div class="empty">계정이 없습니다. 우측 상단에서 발급하세요.</div></td></tr>{% endfor %}
+  </tbody></table></div>
+  {{ pager(page, total_pages, 'admin.users', q=q, status=status) }}
+</div></div>
+
+{# 계정 발급 모달 #}
+<div class="modal" id="userCreate">
+  <form class="modal-box" method="post" action="/admin/users/create">
+    <h3>계정 발급</h3>
+    <div class="f"><label>아이디 *</label><input class="in" name="username" required pattern="[a-zA-Z0-9_\-]{3,30}" placeholder="영문/숫자 3~30자"></div>
+    <div class="f"><label>비밀번호 *</label><input class="in" type="text" name="password" required minlength="8" placeholder="8자 이상"></div>
+    <div class="f"><label>이름(표시명)</label><input class="in" name="nickname" placeholder="비우면 아이디 사용"></div>
+    <div class="f"><label>권한</label><select class="in" name="role"><option value="user">일반유저</option><option value="admin">관리자</option></select></div>
+    <div class="f"><label>회사명</label><input class="in" name="company"></div>
+    <div class="f"><label>메모</label><input class="in" name="memo"></div>
+    <div style="display:flex;gap:8px"><button class="btn sec" type="button" data-close style="flex:1">취소</button><button class="btn pri" type="submit" style="flex:1">발급</button></div>
+  </form>
+</div>
+
+{# 계정 수정 모달 (행마다) #}
+{% for u in rows %}
+<div class="modal" id="userEdit{{ u.id }}">
+  <form class="modal-box" method="post" action="/admin/users/{{ u.id }}/update?q={{ q or '' }}">
+    <h3>{{ u.username }} 수정</h3>
+    <div class="f"><label>새 비밀번호</label><input class="in" type="text" name="password" minlength="8" placeholder="변경할 때만 입력"></div>
+    <div class="f"><label>이름(표시명)</label><input class="in" name="nickname" value="{{ u.nickname }}"></div>
+    <div class="f"><label>권한</label><select class="in" name="role"><option value="user"{% if u.role == 'user' %} selected{% endif %}>일반유저</option><option value="admin"{% if u.role == 'admin' %} selected{% endif %}>관리자</option></select></div>
+    <div class="f"><label>회사명</label><input class="in" name="company" value="{{ u.company or '' }}"></div>
+    <div class="f"><label>메모</label><input class="in" name="memo" value="{{ u.memo or '' }}"></div>
+    <div style="display:flex;gap:8px"><button class="btn sec" type="button" data-close style="flex:1">취소</button><button class="btn pri" type="submit" style="flex:1">저장</button></div>
+  </form>
+</div>
+{% endfor %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/admin.js') }}"></script>{% endblock %}

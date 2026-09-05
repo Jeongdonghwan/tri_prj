@@ -1,0 +1,53 @@
+/* 트리플업 테마 오버라이드 — 참고 시안: 다크 네이비 라운드 사이드바 + 라임 액센트 + 라벤더 배경 + 화이트 라운드 카드.
+   tokens/base/components.css 뒤에 로드해 덮어쓴다. */
+:root{
+  --sidebar-bg:#101233;--sidebar-text:#ADB0CC;--sidebar-active-bg:rgba(255,255,255,.08);--sidebar-line:rgba(255,255,255,.12);
+  --bg:#EAE5F6;--surface:#fff;--border:#EBE7F5;
+  --accent:#6C5CE7;--accent-hover:#5A4BD6;--accent-soft:#EFECFF;
+  --lime:#C9F252;--lime-ink:#101233;
+  --radius:18px;--shadow:0 2px 6px rgba(30,20,80,.05),0 10px 28px rgba(30,20,80,.06);
+}
+
+/* ---- 플로팅 라운드 사이드바 ---- */
+.app{grid-template-columns:296px 1fr}
+.sidebar{margin:14px 0 14px 14px;height:calc(100vh - 28px);top:14px;border-radius:24px;padding:22px 14px 18px;
+  box-shadow:0 14px 40px rgba(16,18,51,.28)}
+body.admin .sidebar{background:#0B1220;border-radius:24px}
+.logo{color:#fff}
+.logo .ltxt{font-weight:800}
+.nav-sec>h6{color:#5F6386}
+.nav a,.nav .acc{border-radius:999px;color:var(--sidebar-text)}
+.nav a:hover,.nav .acc:hover{background:var(--sidebar-active-bg);color:#fff}
+.nav a.on{background:var(--lime)!important;color:var(--lime-ink)!important;font-weight:700}
+.nav a.on .i{color:var(--lime-ink)}
+.nav .sub a.on{background:var(--lime)!important;color:var(--lime-ink)!important}
+.point-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);border-radius:14px}
+.side-foot a{border-radius:999px}
+
+/* ---- 카드 · 표면 ---- */
+.card{border-radius:var(--radius);border:1px solid transparent;box-shadow:var(--shadow)}
+.pcard{border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid transparent}
+.pcard:hover{border-color:var(--accent)}
+.btn.pri{border-radius:999px}
+.btn.sec{border-radius:999px}
+.tabs button{border-radius:999px}
+.st{border-radius:999px}
+
+/* ---- 대시보드 전용 ---- */
+.tw-welcome{display:flex;align-items:center;gap:10px;margin:6px 0 18px}
+.tw-welcome h1{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.tw-welcome .thin{margin-left:auto}
+.tw-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.tw-stat{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;display:flex;align-items:center;gap:14px}
+.tw-stat .ic{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:none}
+.tw-stat .ic.a{background:var(--accent-soft);color:var(--accent)}
+.tw-stat .ic.b{background:#EAF9D2;color:#4D7C0F}
+.tw-stat .ic.c{background:#FEF3C7;color:#B45309}
+.tw-stat b{font-size:22px;line-height:1.1}
+.tw-stat span{display:block;font-size:12px;color:var(--text-2)}
+.tw-promo{background:linear-gradient(135deg,#14164a,#101233);border-radius:var(--radius);color:#fff;padding:22px 20px;box-shadow:var(--shadow);margin-bottom:14px}
+.tw-promo h3{font-size:16px;font-weight:800;margin-bottom:6px}
+.tw-promo p{font-size:12.5px;color:#B9BDD9;line-height:1.6;margin-bottom:14px}
+.tw-promo .btn{background:var(--lime);color:var(--lime-ink);border:none;font-weight:700}
+@media (max-width:900px){.tw-stats{grid-template-columns:1fr}}
+@media (max-width:768px){.sidebar{margin:0;border-radius:0;height:100vh;top:0}}

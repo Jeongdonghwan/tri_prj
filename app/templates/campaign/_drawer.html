@@ -1,0 +1,25 @@
+{# Drawer partial (prototype #drawer). Loaded via fetch into #drawer. #}
+<div class="dh"><div><h3>{{ c.biz_name }}</h3><div style="font-size:12px;color:var(--text-2)" class="mono">{{ c.order_no }} · {{ c.media_name }}</div></div><button class="icon-btn x" id="dclose" type="button"><i data-lucide="x" class="i"></i></button></div>
+<div class="db">
+  <div class="dsec"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap"><span class="st {{ status_class[c.status] }}">{{ status_label[c.status] }}</span>
+    <span style="font-size:12px;color:var(--text-2)">{% if c.status == 'running' %}{{ day_idx }}일차 / {{ prog.total }}일 · {{ c.end_date | fmt_date }} 종료{% elif c.status == 'stopped' %}{{ prog.elapsed }}/{{ prog.total }}일 진행 후 중단{% elif c.status == 'done' %}{{ prog.total }}일 완료{% else %}{{ prog.label }}{% endif %}</span>
+    {% if c.status == 'running' %}<form method="post" action="/campaign/{{ channel }}/{{ c.id }}/stop" style="margin-left:auto" onsubmit="return confirm('캠페인을 중단할까요? 순위 추적도 함께 종료됩니다.')"><button class="btn sec sm" type="submit">중단 요청</button></form>
+    {% endif %}</div>
+    <div class="dgrid"><div><span>희망 키워드</span><b>{{ c.main_keyword }}</b></div><div><span>일 작업량</span><b class="num">{{ c.daily_qty }}건</b></div><div><span>금액</span><b class="num">{{ c.paid_amount | won }}</b></div><div><span>누적 작업</span><b class="num">{{ done_qty | fmt_num }} / {{ c.total_qty | fmt_num }}건</b></div></div>
+    {% if c.warn_words %}<div class="memo" style="margin-top:8px">주의 문구 감지: {{ c.warn_words }} — 검수 시 반려될 수 있습니다.</div>{% endif %}
+    </div>
+
+  <div class="dsec"><h6>순위 변동 <span style="font-weight:500;color:var(--text-3)">· 낮을수록 좋음</span></h6>
+    {% if ranks %}<div class="rankchart">{% for d in ranks %}<i data-r="{{ d.rank }}" style="height:{{ d.h }}%"{% if loop.last %} class="now"{% endif %}></i>{% endfor %}</div>
+    <div class="spark-lb"><span>{{ ranks[0].date | fmt_date }}</span><span>{{ ranks[-1].date | fmt_date }}</span></div>
+    {% else %}<div class="empty" style="padding:16px 0">아직 순위 데이터가 없습니다.{% if c.status in ('running','approved') %} 운영팀이 매일 입력합니다.{% endif %}</div>{% endif %}</div>
+
+  
+
+  <div class="dsec"><h6>진행 이력</h6><ul class="timeline">
+    {% for l in logs %}<li class="on"><b>{% if l.from_status == l.to_status or l.from_status is none and l.to_status == 'pay_wait' %}{{ (l.memo or '').split(' · ')[0] }}{% else %}{{ status_label.get(l.to_status, l.to_status) }}{% endif %}</b><span>{{ l.created_at | fmt_date('%m.%d %H:%M') }}{% if l.memo %} — {{ l.memo }}{% endif %}</span></li>{% endfor %}
+  </ul></div>
+
+  {% if c.admin_memo %}<div class="dsec"><h6>운영팀 메모</h6><div class="memo">{{ c.admin_memo }}</div></div>{% endif %}
+  <div style="display:flex;gap:8px"><a class="btn sec" style="flex:1" href="/campaign/{{ channel }}/new?copy={{ c.id }}"><i data-lucide="copy" class="i i16"></i>같은 설정으로 복사</a><button class="btn sec" style="flex:1" type="button" disabled title="P5에서 제공">리포트 PDF</button></div>
+</div>

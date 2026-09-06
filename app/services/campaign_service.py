@@ -47,16 +47,15 @@ def update_terms(campaign, admin_id, start_date, end_date):
 
 
 # ---- 등록/수정 (사용자) -----------------------------------------------------
-def fill(campaign, user, data):
+def fill(campaign, user, data, batch_id=None):
     """사용자 등록(빈 캠페인 채우기)/수정. 등록 대기 → running + 순위 추적 시작.
 
     진행 중 캠페인의 키워드·URL 이 바뀌면 추적을 갈아탄다
     (기존 슬롯은 다른 진행 캠페인이 안 쓰면 해제 → 새 슬롯 등록).
+    batch_id 를 주면 변경 이력에서 여러 슬롯을 한 줄로 묶는다 (일괄 등록).
     """
     if campaign["status"] not in ("pending", "running"):
         raise CampaignError("등록 대기 또는 진행 중인 캠페인만 수정할 수 있습니다.")
-    changed_track = (campaign.get("main_keyword") != data["main_keyword"]
-                     or campaign.get("target_url") != data["target_url"])
     is_new = campaign["status"] == "pending"
     changes = _build_changes(campaign, data, is_new)
     memo = "신규 등록" if is_new else ("수정" if changes else "변경 없음")
@@ -68,17 +67,22 @@ def fill(campaign, user, data):
     })
     fresh = campaign_model.get(campaign["id"])
     if is_new:
-        fresh = transition(fresh, "running", user["id"], memo, changes)
+        fresh = transition(fresh, "running", user["id"], memo, changes, batch_id)
         start_tracking(fresh)
-    elif changed_track:
+    elif changed_track(campaign, data):
         _maybe_untrack(campaign)                      # 기존 추적: 공유 검사 후 해제
         campaign_model.update(fresh["id"], {"track_id": None, "track_status": None,
                                             "rank_start": None, "rank_now": None})
-        campaign_model.add_log(fresh["id"], "running", "running", user["id"], memo, changes)
+        campaign_model.add_log(fresh["id"], "running", "running", user["id"], memo, changes, batch_id)
         start_tracking(campaign_model.get(fresh["id"]))
     else:
-        campaign_model.add_log(fresh["id"], "running", "running", user["id"], memo, changes)
+        campaign_model.add_log(fresh["id"], "running", "running", user["id"], memo, changes, batch_id)
     return campaign_model.get(campaign["id"])
+
+
+def changed_track(campaign, data):
+    return (campaign.get("main_keyword") != data["main_keyword"]
+            or campaign.get("target_url") != data["target_url"])
 
 
 def _build_changes(old, data, is_new):
@@ -110,13 +114,13 @@ def start_tracking(campaign):
 
 
 # ---- transition ----------------------------------------------------------
-def transition(campaign, to_status, actor_id=None, memo=None, changes=None):
+def transition(campaign, to_status, actor_id=None, memo=None, changes=None, batch_id=None):
     """campaigns.status 를 바꾸는 유일한 경로. 전이표 검증 + status_log 기록."""
     frm = campaign["status"]
     if to_status not in TRANSITIONS.get(frm, set()):
         raise CampaignError(f"허용되지 않는 상태 변경: {frm} → {to_status}")
     campaign_model.set_status(campaign["id"], to_status)
-    campaign_model.add_log(campaign["id"], frm, to_status, actor_id, memo, changes)
+    campaign_model.add_log(campaign["id"], frm, to_status, actor_id, memo, changes, batch_id)
     _notify_status(campaign, to_status)
     fresh = campaign_model.get(campaign["id"])
     if to_status == "done":

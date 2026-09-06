@@ -186,13 +186,14 @@ def changes():
                            date_from=date_from, date_to=date_to, status_label=STATUS_LABEL)
 
 
-@bp.route("/changes/<int:log_id>/handle", methods=["POST"])
+@bp.route("/changes/handle", methods=["POST"])
 @admin_required
-def change_handle(log_id):
+def change_handle():
+    ids = (request.form.get("ids") or "").split(",")
     if request.form.get("undo") == "1":
-        campaign_model.unmark_handled(log_id)
+        campaign_model.unmark_handled(ids)
     else:
-        campaign_model.mark_handled(log_id, g.user["id"])
+        campaign_model.mark_handled(ids, g.user["id"])
     return _back(url_for("admin.changes"))
 
 

@@ -150,11 +150,11 @@ def user_logs(user_id, date_from=None, date_to=None, page=1, per_page=30):
 
 
 # ---- status_log ----------------------------------------------------------
-def add_log(campaign_id, from_status, to_status, actor_id=None, memo=None, changes=None):
+def add_log(campaign_id, from_status, to_status, actor_id=None, memo=None, changes=None, batch_id=None):
     return execute(
-        "INSERT INTO status_log (campaign_id, from_status, to_status, actor_id, memo, changes) VALUES (%s,%s,%s,%s,%s,%s)",
+        "INSERT INTO status_log (campaign_id, from_status, to_status, actor_id, memo, changes, batch_id) VALUES (%s,%s,%s,%s,%s,%s,%s)",
         [campaign_id, from_status, to_status, actor_id, memo,
-         json.dumps(changes, ensure_ascii=False) if changes else None])
+         json.dumps(changes, ensure_ascii=False) if changes else None, batch_id])
 
 
 def list_log(campaign_id):
@@ -163,22 +163,27 @@ def list_log(campaign_id):
 
 # ---- 사용자 캠페인 변경 이력 (운영자가 다른 사이트에 옮겨 적을 피드) --------
 def change_feed(only_unhandled=False, date_from=None, date_to=None, page=1, per_page=30):
-    """사용자가 직접 등록/수정/중단한 이벤트만 (actor = 캠페인 소유자). 최신순."""
+    """사용자가 직접 등록/수정/중단한 이벤트 (actor = 소유자). 일괄 등록은 batch_id 로 한 줄에 묶는다."""
     where = ["l.actor_id = c.user_id"]
     params = []
-    if only_unhandled:
-        where.append("l.handled_at IS NULL")
     if date_from:
         where.append("l.created_at >= %s"); params.append(f"{date_from} 00:00:00")
     if date_to:
         where.append("l.created_at <= %s"); params.append(f"{date_to} 23:59:59")
     w = " AND ".join(where)
+    # 묶음 키: batch_id 가 있으면 그것, 없으면 로그 1건당 고유키
+    gkey = "COALESCE(l.batch_id, CONCAT('s', l.id))"
+    having = "HAVING SUM(l.handled_at IS NULL) > 0" if only_unhandled else ""
     rows = query(
-        f"""SELECT l.id, l.created_at, l.from_status, l.to_status, l.memo, l.changes, l.handled_at,
-                   c.id AS campaign_id, c.slot_no, c.main_keyword, c.target_url, c.product_name,
-                   u.username, u.nickname
+        f"""SELECT GROUP_CONCAT(l.id) AS ids, COUNT(*) AS cnt,
+                   GROUP_CONCAT(DISTINCT c.slot_no ORDER BY c.slot_no SEPARATOR ',') AS slot_nos,
+                   MAX(l.created_at) AS created_at, MAX(l.from_status) AS from_status, MAX(l.to_status) AS to_status,
+                   MAX(l.memo) AS memo, MAX(l.changes) AS changes,
+                   MAX(c.main_keyword) AS main_keyword, MAX(c.target_url) AS target_url, MAX(c.product_name) AS product_name,
+                   MAX(u.username) AS username, SUM(l.handled_at IS NULL) AS unhandled_cnt
             FROM status_log l JOIN campaigns c ON c.id = l.campaign_id JOIN users u ON u.id = c.user_id
-            WHERE {w} ORDER BY l.created_at DESC, l.id DESC LIMIT %s OFFSET %s""",
+            WHERE {w} GROUP BY {gkey} {having}
+            ORDER BY created_at DESC LIMIT %s OFFSET %s""",
         params + [per_page, (page - 1) * per_page])
     for r in rows:
         if isinstance(r.get("changes"), str):
@@ -186,23 +191,37 @@ def change_feed(only_unhandled=False, date_from=None, date_to=None, page=1, per_
                 r["changes"] = json.loads(r["changes"])
             except ValueError:
                 r["changes"] = None
+        r["handled"] = (int(r["unhandled_cnt"]) == 0)
     total = query_one(
-        f"SELECT COUNT(*) AS n FROM status_log l JOIN campaigns c ON c.id = l.campaign_id WHERE {w}", params)["n"]
+        f"""SELECT COUNT(*) AS n FROM (
+              SELECT {gkey} AS k FROM status_log l JOIN campaigns c ON c.id = l.campaign_id
+              WHERE {w} GROUP BY {gkey} {having}) t""", params)["n"]
     return rows, total
 
 
 def unhandled_change_count():
+    """미처리 묶음 수 (batch 단위)."""
     return query_one(
-        "SELECT COUNT(*) AS n FROM status_log l JOIN campaigns c ON c.id = l.campaign_id "
-        "WHERE l.actor_id = c.user_id AND l.handled_at IS NULL")["n"]
+        """SELECT COUNT(*) AS n FROM (
+             SELECT COALESCE(l.batch_id, CONCAT('s', l.id)) AS k
+             FROM status_log l JOIN campaigns c ON c.id = l.campaign_id
+             WHERE l.actor_id = c.user_id GROUP BY k HAVING SUM(l.handled_at IS NULL) > 0) t""")["n"]
 
 
-def mark_handled(log_id, admin_id):
-    execute("UPDATE status_log SET handled_at = NOW(), handled_by = %s WHERE id = %s", [admin_id, log_id])
+def mark_handled(ids, admin_id):
+    ids = [int(i) for i in ids if str(i).isdigit()]
+    if not ids:
+        return
+    ph = ",".join(["%s"] * len(ids))
+    execute(f"UPDATE status_log SET handled_at = NOW(), handled_by = %s WHERE id IN ({ph})", [admin_id, *ids])
 
 
-def unmark_handled(log_id):
-    execute("UPDATE status_log SET handled_at = NULL, handled_by = NULL WHERE id = %s", [log_id])
+def unmark_handled(ids):
+    ids = [int(i) for i in ids if str(i).isdigit()]
+    if not ids:
+        return
+    ph = ",".join(["%s"] * len(ids))
+    execute(f"UPDATE status_log SET handled_at = NULL, handled_by = NULL WHERE id IN ({ph})", ids)
 
 
 # ---- admin ---------------------------------------------------------------

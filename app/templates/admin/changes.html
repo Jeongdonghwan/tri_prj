@@ -18,11 +18,12 @@
   <div style="overflow-x:auto;margin:0 -18px"><table><thead><tr><th>변경 일시</th><th>아이디</th><th>슬롯</th><th>구분</th><th>현재 값 (키워드 · URL · 상품명)</th><th>변경 내용</th><th>처리</th></tr></thead><tbody>
     {% for r in rows %}
     {% set kind = '중단' if r.to_status == 'stopped' else ('등록' if r.from_status == 'pending' else '수정') %}
-    <tr{% if not r.handled_at %} style="background:var(--warn-soft)"{% endif %}>
+    {% set multi = r.cnt and r.cnt > 1 %}
+    <tr{% if not r.handled %} style="background:var(--warn-soft)"{% endif %}>
       <td class="num" style="white-space:nowrap">{{ r.created_at | fmt_date('%Y.%m.%d %H:%M:%S') }}</td>
       <td><b>{{ r.username }}</b></td>
-      <td class="num">{{ r.slot_no }}</td>
-      <td><span class="tag{% if kind == '등록' %} t-pin{% endif %}">{{ kind }}</span></td>
+      <td class="num">{{ r.slot_nos }}{% if multi %} <span class="mut" style="font-size:11px">({{ r.cnt }}개)</span>{% endif %}</td>
+      <td><span class="tag{% if kind == '등록' %} t-pin{% endif %}">{{ kind }}{% if multi %} · 일괄{% endif %}</span></td>
       <td style="min-width:280px">
         <div><b>{{ r.main_keyword or '-' }}</b></div>
         {% if r.target_url %}<div style="font-size:12px"><a class="lnk" href="{{ r.target_url }}" target="_blank" rel="noopener">{{ r.target_url[:70] }}{% if r.target_url|length > 70 %}…{% endif %}</a></div>{% endif %}
@@ -47,11 +48,11 @@
         {% endif %}
       </td>
       <td>
-        {% if r.handled_at %}
-          <span class="st s-done" title="{{ r.handled_at | fmt_date('%Y.%m.%d %H:%M') }} 처리">처리됨</span>
-          <form method="post" action="/admin/changes/{{ r.id }}/handle" style="display:inline"><input type="hidden" name="undo" value="1"><input type="hidden" name="back" value="{{ request.full_path }}"><button type="submit" style="font-size:11px;color:var(--text-3)">취소</button></form>
+        {% if r.handled %}
+          <span class="st s-done">처리됨</span>
+          <form method="post" action="/admin/changes/handle" style="display:inline"><input type="hidden" name="ids" value="{{ r.ids }}"><input type="hidden" name="undo" value="1"><input type="hidden" name="back" value="{{ request.full_path }}"><button type="submit" style="font-size:11px;color:var(--text-3)">취소</button></form>
         {% else %}
-          <form method="post" action="/admin/changes/{{ r.id }}/handle"><input type="hidden" name="back" value="{{ request.full_path }}"><button class="btn pri sm" type="submit">처리 완료</button></form>
+          <form method="post" action="/admin/changes/handle"><input type="hidden" name="ids" value="{{ r.ids }}"><input type="hidden" name="back" value="{{ request.full_path }}"><button class="btn pri sm" type="submit">처리 완료</button></form>
         {% endif %}
       </td>
     </tr>

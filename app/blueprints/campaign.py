@@ -170,19 +170,22 @@ def bulk_fill(channel):
     if err:
         flash(err)
         return redirect(url_for("campaign.manage", channel=channel))
-    ok, msgs = 0, []
+    import secrets
+    batch_id = secrets.token_hex(8)          # 이 일괄 등록을 변경 이력에서 한 줄로 묶는 키
+    ok, slots, msgs = 0, [], []
     for cid in ids:
         c = campaign_model.get(cid)
         if not c or c["user_id"] != g.user["id"] or c["channel"] != channel:
             continue
-        was_pending = c["status"] == "pending"
         try:
-            c2 = campaign_service.fill(c, g.user, data)
+            c2 = campaign_service.fill(c, g.user, data, batch_id=batch_id)
             ok += 1
-            _audit("campaign_register" if was_pending else "campaign_edit", c2,
-                   f"슬롯{c2['slot_no']} {'등록' if was_pending else '수정'} · {c2['main_keyword']}")
+            slots.append(str(c2["slot_no"]))
         except campaign_service.CampaignError as e:
             msgs.append(f"슬롯{c['slot_no']}: {e}")
+    if ok:
+        _audit("campaign_register", campaign_model.get(int(ids[0])),
+               f"슬롯 {', '.join(slots)} ({ok}개) 일괄 등록 · {data['main_keyword']}")
     flash(f"{ok}개 슬롯에 등록했습니다. 순위는 자동 조회됩니다." + (" · " + "; ".join(msgs[:3]) if msgs else ""))
     return redirect(url_for("campaign.manage", channel=channel))
 

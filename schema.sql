@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS status_log (
   actor_id    INT NULL,
   memo        VARCHAR(500) NULL,
   changes     JSON NULL,              -- [{label, old, new}] 필드 단위 변경 (변경 이력 화면)
+  batch_id    VARCHAR(32) NULL,       -- 일괄 등록 묶음 (변경 이력에서 한 줄로 표시)
   handled_at  DATETIME NULL,          -- 운영자가 다른 사이트에 반영 완료 체크
   handled_by  INT NULL,
   created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -13,7 +13,7 @@
 <div class="card"><div class="cb" style="padding-top:6px">
   <div class="tabs">
     <a href="/campaign/{{ channel }}"><button type="button"{% if not status %} class="on"{% endif %}>전체<em>{{ total_all }}</em></button></a>
-    {% for s in status_order %}<a href="/campaign/{{ channel }}?status={{ s }}"><button type="button"{% if status == s %} class="on"{% endif %}>{{ status_label[s] }}<em>{{ counts.get(s, 0) }}</em></button></a>{% endfor %}
+    {% for s in status_order if s != 'pending' %}<a href="/campaign/{{ channel }}?status={{ s }}"><button type="button"{% if status == s %} class="on"{% endif %}>{{ status_label[s] }}<em>{{ counts.get(s, 0) }}</em></button></a>{% endfor %}
   </div>
   <form class="tbar" method="get">
     {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
@@ -27,7 +27,7 @@
   </div>
 
   <div style="overflow-x:auto;margin:0 -18px"><table class="ctable ref">
-    <thead><tr><th style="width:34px"><input type="checkbox" id="chkAll"></th><th>번호</th><th>상태</th><th>순위 키워드</th><th>상품명</th><th>순위</th><th>남은 일수</th><th>시작일</th><th>종료일</th><th>링크</th><th>기능</th></tr></thead>
+    <thead><tr><th style="width:34px"><input type="checkbox" id="chkAll"></th><th>번호</th><th>상태</th><th>순위 키워드</th><th>상품명</th><th>순위</th><th>남은 일수</th><th>시작일</th><th>종료일</th><th>링크</th><th>수정</th></tr></thead>
     <tbody>
     {% for r in rows %}
       <tr data-open="{{ r.id }}"{% if r.id == open_id %} class="sel"{% endif %}>
@@ -42,9 +42,9 @@
         {% set left = r.prog.total - r.prog.elapsed %}
         <td class="num" data-l="종료일">{% if r.status == 'running' and left <= 3 %}<span style="color:var(--danger);font-weight:700">{{ r.end_date | fmt_date('%Y-%m-%d') }}</span>{% else %}<span class="mut">{{ r.end_date | fmt_date('%Y-%m-%d') }}</span>{% endif %}</td>
         <td data-l="링크">{% if r.target_url %}<a class="lnk" href="{{ r.target_url }}" target="_blank" rel="noopener">바로가기</a>{% else %}<span class="mut">-</span>{% endif %}</td>
-        <td data-l="기능"><div class="rowact" style="opacity:1">
+        <td data-l="수정"><div class="rowact" style="opacity:1">
           {% if r.status == 'pending' %}<button type="button" class="btn pri sm" data-modal="#fill{{ r.id }}">등록</button>
-          {% elif r.status == 'running' %}<button type="button" data-modal="#fill{{ r.id }}">수정</button><form method="post" action="/campaign/{{ channel }}/{{ r.id }}/stop" onsubmit="return confirm('캠페인을 중단할까요? 순위 추적도 함께 종료됩니다.')"><button type="submit">중단</button></form>
+          {% elif r.status == 'running' %}<button type="button" class="btn sec sm" data-modal="#fill{{ r.id }}">수정</button>
           {% endif %}
         </div></td>
       </tr>

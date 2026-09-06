@@ -53,6 +53,11 @@ def manage(channel):
     total = campaign_model.count_user(uid, channel, status, period, q)
     for r in rows:
         r["prog"] = campaign_service.progress(r)
+    # 콜백 유실분 자동 보정: 진행 중인데 오늘 순위/상품명 없는 슬롯을 백그라운드로 재동기화(비차단)
+    stale = [r["id"] for r in rows if r["status"] == "running" and r.get("track_id")
+             and (r.get("rank_now") is None or not r.get("product_name"))]
+    if stale:
+        _reconcile_async(stale)
     counts = campaign_model.status_counts(uid, channel)
     avg_up, done_n = campaign_model.avg_rank_change(uid, channel)
     stats = {"running": counts.get("running", 0), "pending": counts.get("pending", 0),
@@ -133,13 +138,31 @@ def ranks(channel, campaign_id):
 _FB_CACHE = {}
 
 
+def _reconcile_async(campaign_ids):
+    """순위/상품명 누락 진행 슬롯을 백그라운드에서 순위 서버와 재동기화 (페이지 응답을 막지 않음)."""
+    import threading
+    app = current_app._get_current_object()
+
+    def run():
+        with app.app_context():
+            for cid in campaign_ids:
+                try:
+                    c = campaign_model.get(cid)
+                    if c:
+                        _fallback_sync(c)
+                except Exception:
+                    current_app.logger.exception("재동기화 실패 campaign=%s", cid)
+
+    threading.Thread(target=run, daemon=True).start()
+
+
 def _fallback_sync(c):
     """콜백 유실 대비: 진행 중 + 오늘 순위 없음 + 5분 경과 시 순위 서버 이력으로 보정."""
     import time as _t
     if c["status"] != "running" or not c.get("track_id"):
         return
-    if campaign_model.today_rank(c["id"]) is not None:
-        return
+    if campaign_model.today_rank(c["id"]) is not None and c.get("product_name"):
+        return                                   # 순위·상품명 다 있으면 재조회 불필요
     last = _FB_CACHE.get(c["id"], 0)
     if _t.time() - last < 300:
         return
@@ -147,6 +170,8 @@ def _fallback_sync(c):
     r = rank_client.fetch_ranks(c["track_id"])
     if not r.get("ok"):
         return
+    if r.get("prodNm") and not c.get("product_name"):    # 콜백 유실 시 상품명도 폴백으로 보정
+        campaign_model.update(c["id"], {"product_name": r["prodNm"][:120]})
     have = {d["date"] for d in campaign_model.list_daily(c["id"])}
     for row in r.get("ranks", []):
         d = date.fromisoformat(row["date"])

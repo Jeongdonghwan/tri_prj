@@ -79,6 +79,10 @@ def fill(campaign, user, data, batch_id=None):
                                             "rank_start": None, "rank_now": None})
         campaign_model.add_log(fresh["id"], "running", "running", user["id"], memo, changes, batch_id)
         _spawn_track(fresh["id"], untrack_id=old_track)
+    elif not campaign.get("track_id") or campaign.get("track_status") == "error":
+        # 내용은 그대로지만 이전 추적 등록이 실패한 상태 → 수정 저장으로 재시도
+        campaign_model.add_log(fresh["id"], "running", "running", user["id"], "추적 재시도", None, batch_id)
+        _spawn_track(fresh["id"])
     else:
         campaign_model.add_log(fresh["id"], "running", "running", user["id"], memo, changes, batch_id)
     return campaign_model.get(campaign["id"])

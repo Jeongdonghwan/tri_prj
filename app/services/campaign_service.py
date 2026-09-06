@@ -57,6 +57,8 @@ def fill(campaign, user, data):
         raise CampaignError("등록 대기 또는 진행 중인 캠페인만 수정할 수 있습니다.")
     changed_track = (campaign.get("main_keyword") != data["main_keyword"]
                      or campaign.get("target_url") != data["target_url"])
+    is_new = campaign["status"] == "pending"
+    memo = _change_memo(campaign, data, is_new)
     campaign_model.update(campaign["id"], {
         "product_name": data.get("product_name"),
         "target_url": data["target_url"], "main_keyword": data["main_keyword"],
@@ -64,18 +66,32 @@ def fill(campaign, user, data):
         "warn_words": data.get("warn_words"),
     })
     fresh = campaign_model.get(campaign["id"])
-    if campaign["status"] == "pending":
-        fresh = transition(fresh, "running", user["id"], "내용 등록 · 순위 추적 시작")
+    if is_new:
+        fresh = transition(fresh, "running", user["id"], memo)
         start_tracking(fresh)
     elif changed_track:
         _maybe_untrack(campaign)                      # 기존 추적: 공유 검사 후 해제
         campaign_model.update(fresh["id"], {"track_id": None, "track_status": None,
                                             "rank_start": None, "rank_now": None})
-        campaign_model.add_log(fresh["id"], "running", "running", user["id"], "키워드·상품 변경 · 추적 재등록")
+        campaign_model.add_log(fresh["id"], "running", "running", user["id"], memo + " · 추적 재등록")
         start_tracking(campaign_model.get(fresh["id"]))
     else:
-        campaign_model.add_log(fresh["id"], "running", "running", user["id"], "내용 수정")
+        campaign_model.add_log(fresh["id"], "running", "running", user["id"], memo)
     return campaign_model.get(campaign["id"])
+
+
+def _change_memo(old, data, is_new):
+    """변경 이력에 값까지 남긴다 (운영자가 다른 사이트에 옮겨 적을 수 있도록)."""
+    if is_new:
+        return f"등록 · 키워드 '{data['main_keyword']}' · URL {data['target_url']}"
+    parts = []
+    if (old.get("main_keyword") or "") != data["main_keyword"]:
+        parts.append(f"키워드 '{old.get('main_keyword') or '-'}' → '{data['main_keyword']}'")
+    if (old.get("target_url") or "") != data["target_url"]:
+        parts.append(f"URL → {data['target_url']}")
+    if (old.get("product_name") or "") != (data.get("product_name") or ""):
+        parts.append(f"상품명 '{old.get('product_name') or '-'}' → '{data.get('product_name') or '-'}'")
+    return "수정 · " + (", ".join(parts) if parts else "변경 없음")
 
 
 def start_tracking(campaign):

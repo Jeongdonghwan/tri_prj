@@ -1,0 +1,45 @@
+{% extends "layout/base.html" %}
+{% from "macros/pagination.html" import pager %}
+{% block title %}변경 이력{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>변경 이력</h1><p>사용자가 등록·수정·중단한 내역입니다. 다른 사이트에 반영한 건 <b>처리</b>로 체크해 빠뜨리지 마세요. (총 {{ total | fmt_num }}건)</p></div></div>
+<div class="card"><div class="cb" style="padding-top:6px">
+  <div class="tabs">
+    <a href="/admin/changes"><button type="button"{% if only_unhandled %} class="on"{% endif %}>미처리</button></a>
+    <a href="/admin/changes?filter=all"><button type="button"{% if not only_unhandled %} class="on"{% endif %}>전체</button></a>
+  </div>
+  <form class="tbar" method="get" style="gap:8px">
+    {% if not only_unhandled %}<input type="hidden" name="filter" value="all">{% endif %}
+    <input class="in" type="date" name="date_from" value="{{ date_from or '' }}" style="width:auto" onchange="this.form.submit()">
+    <span class="thin">~</span>
+    <input class="in" type="date" name="date_to" value="{{ date_to or '' }}" style="width:auto" onchange="this.form.submit()">
+    {% if date_from or date_to %}<a class="btn sec sm" href="/admin/changes{% if not only_unhandled %}?filter=all{% endif %}">초기화</a>{% endif %}
+  </form>
+  <div style="overflow-x:auto;margin:0 -18px"><table><thead><tr><th>변경 일시</th><th>아이디</th><th>슬롯</th><th>구분</th><th>현재 값 (키워드 · URL · 상품명)</th><th>변경 내용</th><th>처리</th></tr></thead><tbody>
+    {% for r in rows %}
+    {% set kind = '중단' if r.to_status == 'stopped' else ('등록' if r.from_status == 'pending' else '수정') %}
+    <tr{% if not r.handled_at %} style="background:var(--warn-soft)"{% endif %}>
+      <td class="num" style="white-space:nowrap">{{ r.created_at | fmt_date('%Y.%m.%d %H:%M:%S') }}</td>
+      <td><b>{{ r.username }}</b></td>
+      <td class="num">{{ r.slot_no }}</td>
+      <td><span class="tag{% if kind == '등록' %} t-pin{% endif %}">{{ kind }}</span></td>
+      <td style="min-width:280px">
+        <div><b>{{ r.main_keyword or '-' }}</b></div>
+        {% if r.target_url %}<div style="font-size:12px"><a class="lnk" href="{{ r.target_url }}" target="_blank" rel="noopener">{{ r.target_url[:70] }}{% if r.target_url|length > 70 %}…{% endif %}</a></div>{% endif %}
+        {% if r.product_name %}<div class="mut" style="font-size:12px">{{ r.product_name }}</div>{% endif %}
+      </td>
+      <td class="mut" style="font-size:12px;max-width:260px">{{ r.memo or '-' }}</td>
+      <td>
+        {% if r.handled_at %}
+          <span class="st s-done" title="{{ r.handled_at | fmt_date('%Y.%m.%d %H:%M') }} 처리">처리됨</span>
+          <form method="post" action="/admin/changes/{{ r.id }}/handle" style="display:inline"><input type="hidden" name="undo" value="1"><input type="hidden" name="back" value="{{ request.full_path }}"><button type="submit" style="font-size:11px;color:var(--text-3)">취소</button></form>
+        {% else %}
+          <form method="post" action="/admin/changes/{{ r.id }}/handle"><input type="hidden" name="back" value="{{ request.full_path }}"><button class="btn pri sm" type="submit">처리 완료</button></form>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="7"><div class="empty">{% if only_unhandled %}처리할 변경 내역이 없습니다.{% else %}변경 내역이 없습니다.{% endif %}</div></td></tr>{% endfor %}
+  </tbody></table></div>
+  {{ pager(page, total_pages, 'admin.changes', filter=('all' if not only_unhandled else None), date_from=date_from, date_to=date_to) }}
+</div></div>
+{% endblock %}

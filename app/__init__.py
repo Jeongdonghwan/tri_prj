@@ -28,6 +28,7 @@ MENU = {
             "title": "운영",
             "items": [
                 {"label": "운영 현황", "icon": "trending-up", "href": "/admin"},
+                {"label": "변경 이력", "icon": "clipboard-list", "href": "/admin/changes"},
                 {"label": "주문 관리", "icon": "map-pin", "href": "/admin/orders"},
             ],
         },

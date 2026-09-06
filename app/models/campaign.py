@@ -160,6 +160,44 @@ def list_log(campaign_id):
     return query("SELECT * FROM status_log WHERE campaign_id = %s ORDER BY created_at DESC, id DESC", [campaign_id])
 
 
+# ---- 사용자 캠페인 변경 이력 (운영자가 다른 사이트에 옮겨 적을 피드) --------
+def change_feed(only_unhandled=False, date_from=None, date_to=None, page=1, per_page=30):
+    """사용자가 직접 등록/수정/중단한 이벤트만 (actor = 캠페인 소유자). 최신순."""
+    where = ["l.actor_id = c.user_id"]
+    params = []
+    if only_unhandled:
+        where.append("l.handled_at IS NULL")
+    if date_from:
+        where.append("l.created_at >= %s"); params.append(f"{date_from} 00:00:00")
+    if date_to:
+        where.append("l.created_at <= %s"); params.append(f"{date_to} 23:59:59")
+    w = " AND ".join(where)
+    rows = query(
+        f"""SELECT l.id, l.created_at, l.from_status, l.to_status, l.memo, l.handled_at,
+                   c.id AS campaign_id, c.slot_no, c.main_keyword, c.target_url, c.product_name,
+                   u.username, u.nickname
+            FROM status_log l JOIN campaigns c ON c.id = l.campaign_id JOIN users u ON u.id = c.user_id
+            WHERE {w} ORDER BY l.created_at DESC, l.id DESC LIMIT %s OFFSET %s""",
+        params + [per_page, (page - 1) * per_page])
+    total = query_one(
+        f"SELECT COUNT(*) AS n FROM status_log l JOIN campaigns c ON c.id = l.campaign_id WHERE {w}", params)["n"]
+    return rows, total
+
+
+def unhandled_change_count():
+    return query_one(
+        "SELECT COUNT(*) AS n FROM status_log l JOIN campaigns c ON c.id = l.campaign_id "
+        "WHERE l.actor_id = c.user_id AND l.handled_at IS NULL")["n"]
+
+
+def mark_handled(log_id, admin_id):
+    execute("UPDATE status_log SET handled_at = NOW(), handled_by = %s WHERE id = %s", [admin_id, log_id])
+
+
+def unmark_handled(log_id):
+    execute("UPDATE status_log SET handled_at = NULL, handled_by = NULL WHERE id = %s", [log_id])
+
+
 # ---- admin ---------------------------------------------------------------
 ADMIN_SELECT = """SELECT c.*, u.nickname, u.username AS user_username
                   FROM campaigns c JOIN users u ON u.id = c.user_id"""

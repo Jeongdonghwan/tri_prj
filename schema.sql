@@ -66,9 +66,12 @@ CREATE TABLE IF NOT EXISTS status_log (
   from_status VARCHAR(12) NULL,
   to_status   VARCHAR(12) NOT NULL,
   actor_id    INT NULL,
-  memo        VARCHAR(300) NULL,
+  memo        VARCHAR(500) NULL,
+  handled_at  DATETIME NULL,          -- 운영자가 다른 사이트에 반영 완료 체크
+  handled_by  INT NULL,
   created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_status_log_campaign (campaign_id, created_at),
+  INDEX idx_status_log_handled (handled_at, created_at),
   FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

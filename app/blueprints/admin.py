@@ -20,7 +20,7 @@ from .main import render_placeholder
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 PAGES = {
-    "": "운영 현황", "orders": "주문 관리", "content": "공지사항", "users": "계정 관리",
+    "": "운영 현황", "orders": "주문 관리", "changes": "변경 이력", "content": "공지사항", "users": "계정 관리",
     "logs": "로그 기록",
 }
 
@@ -47,6 +47,7 @@ def index():
         "admin/dashboard.html",
         no_rank=campaign_model.running_without_today_rank(), running=counts.get("running", 0),
         pending=counts.get("pending", 0), today_n=campaign_model.today_intake()["n"],
+        unhandled=campaign_model.unhandled_change_count(),
         logs=admin_log.recent(10),
         channel_label=CHANNEL_LABEL,
     )
@@ -169,6 +170,30 @@ def orders_export():
     _log("order_export", None, None, f"엑셀 내보내기 {len(rows)}건")
     return send_file(buf, as_attachment=True, download_name=f"orders_{date.today():%Y%m%d}.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+# =============================================================== 변경 이력 (사용자 등록/수정 → 수기 반영용)
+@bp.route("/changes")
+@admin_required
+def changes():
+    only_unhandled = request.args.get("filter", "unhandled") != "all"
+    date_from = request.args.get("date_from") or None
+    date_to = request.args.get("date_to") or None
+    page, per_page = _page()
+    rows, total = campaign_model.change_feed(only_unhandled, date_from, date_to, page, per_page)
+    return render_template("admin/changes.html", rows=rows, total=total, page=page,
+                           total_pages=max(1, -(-total // per_page)), only_unhandled=only_unhandled,
+                           date_from=date_from, date_to=date_to, status_label=STATUS_LABEL)
+
+
+@bp.route("/changes/<int:log_id>/handle", methods=["POST"])
+@admin_required
+def change_handle(log_id):
+    if request.form.get("undo") == "1":
+        campaign_model.unmark_handled(log_id)
+    else:
+        campaign_model.mark_handled(log_id, g.user["id"])
+    return _back(url_for("admin.changes"))
 
 
 # =============================================================== content

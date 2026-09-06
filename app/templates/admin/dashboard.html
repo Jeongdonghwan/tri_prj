@@ -4,6 +4,7 @@
 <div class="ph"><div><h1>운영 현황</h1><p>지금 처리해야 할 것부터.</p></div></div>
 <div class="queue">
   <a class="card" href="/admin/orders?status=running"><span class="k">오늘 순위 미수집</span><span class="v num{% if no_rank %} alert{% endif %}">{{ no_rank }}</span><span class="d">진행 중 {{ running }}건</span></a>
+  <a class="card" href="/admin/changes"><span class="k">미처리 변경</span><span class="v num{% if unhandled %} alert{% endif %}">{{ unhandled }}</span><span class="d">다른 사이트 반영 대기</span></a>
   <a class="card" href="/admin/orders?status=pending"><span class="k">등록 대기 슬롯</span><span class="v num">{{ pending }}</span><span class="d">사용자 등록 대기</span></a>
   <a class="card" href="/admin/orders?period=today"><span class="k">오늘 발급</span><span class="v num">{{ today_n }}</span><span class="d">슬롯 기준</span></a>
   <a class="card" href="/admin/logs"><span class="k">로그 기록</span><span class="v num"><i data-lucide="scroll-text" class="i"></i></span><span class="d">로그인 · 계정 · 캠페인 처리</span></a>

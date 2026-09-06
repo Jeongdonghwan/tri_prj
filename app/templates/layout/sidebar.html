@@ -15,20 +15,12 @@
   <a class="logo" href="/"><img class="lsym" src="{{ url_for('static', filename='img/logo-tripleup.svg') }}" alt="트리플업" style="height:28px"><span class="ltxt">트리플업</span>{% if is_admin_path %}<small>admin</small>{% endif %}</a>
   <nav class="nav">
    <div class="nav-user">
-    {% for sec in MENU.user %}
-    <div class="nav-sec"><h6>{{ sec.title }}</h6>
-      {% for item in sec['items'] %}{{ nav_item(item) }}{% endfor %}
-    </div>
-    {% endfor %}
+    <div class="nav-sec">{% for sec in MENU.user %}{% for item in sec['items'] %}{{ nav_item(item) }}{% endfor %}{% endfor %}</div>
    </div>
    {# 관리자 메뉴: 관리자 계정이면 어느 화면에서든 노출 #}
    {% if current_user and current_user.role == 'admin' %}
    <div class="nav-admin show">
-    {% for sec in MENU.admin %}
-    <div class="nav-sec"><h6>{{ sec.title }}</h6>
-      {% for item in sec['items'] %}{{ nav_item(item) }}{% endfor %}
-    </div>
-    {% endfor %}
+    <div class="nav-sec">{% for sec in MENU.admin %}{% for item in sec['items'] %}{{ nav_item(item) }}{% endfor %}{% endfor %}</div>
    </div>
    {% endif %}
   </nav>

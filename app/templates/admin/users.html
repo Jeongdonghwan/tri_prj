@@ -46,7 +46,9 @@
   <form class="modal-box" method="post" action="/admin/users/{{ u.id }}/issue?q={{ q or '' }}">
     <h3>{{ u.username }} 슬롯 발급</h3>
     <p class="thin" style="margin:4px 0 12px">발급하면 등록 대기 슬롯이 생기고, 사용자가 키워드·URL을 등록하면 추적이 시작됩니다.</p>
-    <div class="f"><label>기간</label><div class="row2"><input class="in" type="date" name="start_date" value="{{ issue_start }}" required><input class="in" type="date" name="end_date" value="{{ issue_end }}" required></div></div>
+    <div class="f"><label>기간</label><div class="row2"><input class="in issue-start" type="date" name="start_date" value="{{ issue_start }}" required><input class="in issue-end" type="date" name="end_date" value="{{ issue_end }}" required></div>
+      <div class="daypreset">{% for n in [7, 10, 20, 30] %}<button type="button" data-days="{{ n }}"{% if n == 30 %} class="on"{% endif %}>{{ n }}일</button>{% endfor %}</div>
+    </div>
     <div class="f"><label>발급 개수</label><input class="in" type="number" name="count" value="1" min="1" max="50" required></div>
     <div style="display:flex;gap:8px"><button class="btn sec" type="button" data-close style="flex:1">취소</button><button class="btn pri" type="submit" style="flex:1">발급</button></div>
   </form>
@@ -68,4 +70,26 @@
 </div>
 {% endfor %}
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='js/admin.js') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script>
+// 발급 모달: 기간 프리셋(7/10/20/30일) — 시작일 기준으로 종료일 자동 계산
+document.querySelectorAll('.daypreset button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var box = b.closest('form');
+    box.querySelectorAll('.daypreset button').forEach(function (o) { o.classList.remove('on'); });
+    b.classList.add('on');
+    var s = box.querySelector('.issue-start'), e = box.querySelector('.issue-end');
+    var d = new Date(s.value || new Date().toISOString().slice(0, 10));
+    d.setDate(d.getDate() + parseInt(b.dataset.days, 10) - 1);
+    e.value = d.toISOString().slice(0, 10);
+  });
+});
+// 시작일 바꾸면 현재 선택된 프리셋으로 종료일 재계산
+document.querySelectorAll('.issue-start').forEach(function (s) {
+  s.addEventListener('change', function () {
+    var on = s.closest('form').querySelector('.daypreset button.on');
+    if (on) on.click();
+  });
+});
+</script>
+{% endblock %}

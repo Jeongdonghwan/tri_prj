@@ -2,7 +2,11 @@
 
 결제·금액 개념 없음. 기간·수량은 어드민이 발급/수정하고, 사용자는 키워드·상품·URL 만 다룬다.
 """
+import logging
+import threading
 from datetime import date
+
+from flask import current_app
 
 from ..constants import TRANSITIONS
 from ..models import campaign as campaign_model
@@ -68,16 +72,38 @@ def fill(campaign, user, data, batch_id=None):
     fresh = campaign_model.get(campaign["id"])
     if is_new:
         fresh = transition(fresh, "running", user["id"], memo, changes, batch_id)
-        start_tracking(fresh)
+        _spawn_track(fresh["id"])                      # 추적 등록은 백그라운드 (등록 응답 지연 방지)
     elif changed_track(campaign, data):
-        _maybe_untrack(campaign)                      # 기존 추적: 공유 검사 후 해제
+        old_track = campaign.get("track_id")
         campaign_model.update(fresh["id"], {"track_id": None, "track_status": None,
                                             "rank_start": None, "rank_now": None})
         campaign_model.add_log(fresh["id"], "running", "running", user["id"], memo, changes, batch_id)
-        start_tracking(campaign_model.get(fresh["id"]))
+        _spawn_track(fresh["id"], untrack_id=old_track)
     else:
         campaign_model.add_log(fresh["id"], "running", "running", user["id"], memo, changes, batch_id)
     return campaign_model.get(campaign["id"])
+
+
+def _spawn_track(campaign_id, untrack_id=None):
+    """추적 등록(+필요 시 기존 추적 해제)을 백그라운드 스레드에서 수행.
+
+    랭크서버 왕복(HTTP)이 등록 응답을 붙잡지 않도록 분리. 스레드는 자체 앱 컨텍스트로
+    DB 커넥션을 잡는다(요청 g 와 무관).
+    """
+    app = current_app._get_current_object()
+
+    def run():
+        with app.app_context():
+            try:
+                if untrack_id:
+                    _untrack_if_unused(untrack_id, campaign_id)
+                c = campaign_model.get(campaign_id)
+                if c:
+                    start_tracking(c)
+            except Exception:
+                logging.getLogger("tripleup").exception("백그라운드 추적 실패 campaign=%s", campaign_id)
+
+    threading.Thread(target=run, daemon=True).start()
 
 
 def changed_track(campaign, data):
@@ -153,14 +179,18 @@ def stop(campaign, actor_id, reason="사용자 중단 요청"):
 
 
 def _maybe_untrack(campaign):
-    if not campaign.get("track_id"):
-        return
+    if campaign.get("track_id"):
+        _untrack_if_unused(campaign["track_id"], campaign["id"])
+
+
+def _untrack_if_unused(track_id, exclude_campaign_id):
+    """그 track_id 를 쓰는 다른 진행 캠페인이 없을 때만 랭크서버 추적 해제."""
     from ..db import query_one
     from . import rank_client
     other = query_one("SELECT id FROM campaigns WHERE track_id = %s AND status = 'running' AND id != %s LIMIT 1",
-                      (campaign["track_id"], campaign["id"]))
+                      (track_id, exclude_campaign_id))
     if other is None:
-        rank_client.untrack(campaign["track_id"])
+        rank_client.untrack(track_id)
 
 
 def record_rank(campaign, day, rank, actor_id=None):

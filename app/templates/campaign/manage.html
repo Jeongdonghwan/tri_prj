@@ -6,7 +6,7 @@
 
 <div class="mstat">
   <div class="card"><span class="k">등록 대기</span><span class="v num{% if stats.pending %} alert{% endif %}">{{ stats.pending }}<i>개</i></span><span class="d">키워드·URL을 등록해주세요</span></div>
-  <div class="card"><span class="k">진행 중</span><span class="v num">{{ stats.running }}<i>건</i></span><span class="d">순위 자동 추적 중</span></div>
+  <div class="card"><span class="k">정상</span><span class="v num">{{ stats.running }}<i>건</i></span><span class="d">순위 자동 추적 중</span></div>
   <div class="card"><span class="k">평균 순위 변동</span><span class="v num"{% if stats.avg_up and stats.avg_up > 0 %} style="color:var(--success)"{% endif %}>{% if stats.avg_up is not none %}{{ '+' if stats.avg_up >= 0 }}{{ '%.1f' % stats.avg_up }}<i>위</i>{% else %}—{% endif %}</span><span class="d">완료 {{ stats.done_n }}건 기준</span></div>
 </div>
 

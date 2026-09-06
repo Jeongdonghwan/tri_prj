@@ -16,6 +16,12 @@ body.admin .sidebar{background:#0B1220}
 body.admin .nav-user{display:block!important}
 body.admin #pointCard{display:block!important}
 aside.sidebar .nav-admin.show{display:block}
+
+/* 로그인 계정·마이페이지·로그아웃을 사이드바 맨 아래로 */
+.sidebar .nav{flex:1 1 auto;min-height:0;overflow-y:auto}
+.side-bottom{margin-top:auto;padding-top:12px;border-top:1px solid var(--sidebar-line)}
+.side-bottom .point-card{margin-bottom:8px}
+.side-bottom .side-foot{margin:0;border:0;padding:0}
 .logo{color:#fff}
 .logo .ltxt{font-weight:800}
 .nav-sec>h6{color:#5F6386}

@@ -13,20 +13,6 @@
 {% endmacro %}
 <aside class="sidebar">
   <a class="logo" href="/"><img class="lsym" src="{{ url_for('static', filename='img/logo-tripleup.svg') }}" alt="트리플업" style="height:28px"><span class="ltxt">트리플업</span>{% if is_admin_path %}<small>admin</small>{% endif %}</a>
-  {% if current_user %}
-  <a class="point-card on" id="pointCard" href="/my"><div class="lbl">로그인 계정</div><div class="val">{{ current_user.nickname }}<i>{{ '관리자' if current_user.role == 'admin' else '일반' }}</i></div></a>
-  {% else %}
-  <a class="point-card" href="/auth/login"><div class="lbl">트리플업</div><div class="val">로그인이 필요합니다</div></a>
-  {% endif %}
-  <div class="side-foot">
-    {% if current_user %}
-    <a href="/my"><i data-lucide="user" class="i i14"></i>마이페이지</a>
-    {% if current_user.role == 'admin' %}{% if is_admin_path %}<a href="/"><i data-lucide="monitor" class="i i14"></i>사용자 화면</a>{% else %}<a href="/admin"><i data-lucide="shield" class="i i14"></i>관리자</a>{% endif %}{% endif %}
-    <a href="/auth/logout"><i data-lucide="log-out" class="i i14"></i>로그아웃</a>
-    {% else %}
-    <a href="/auth/login"><i data-lucide="log-in" class="i i14"></i>로그인</a>
-    {% endif %}
-  </div>
   <nav class="nav">
    <div class="nav-user">
     {% for sec in MENU.user %}
@@ -46,4 +32,18 @@
    </div>
    {% endif %}
   </nav>
+  {# 로그인 계정 · 마이페이지 · 로그아웃: 사이드바 맨 아래 고정 #}
+  <div class="side-bottom">
+    {% if current_user %}
+    <a class="point-card on" id="pointCard" href="/my"><div class="lbl">로그인 계정</div><div class="val">{{ current_user.nickname }}<i>{{ '관리자' if current_user.role == 'admin' else '일반' }}</i></div></a>
+    <div class="side-foot">
+      <a href="/my"><i data-lucide="user" class="i i14"></i>마이페이지</a>
+      {% if current_user.role == 'admin' %}{% if is_admin_path %}<a href="/"><i data-lucide="monitor" class="i i14"></i>사용자 화면</a>{% else %}<a href="/admin"><i data-lucide="shield" class="i i14"></i>관리자</a>{% endif %}{% endif %}
+      <a href="/auth/logout"><i data-lucide="log-out" class="i i14"></i>로그아웃</a>
+    </div>
+    {% else %}
+    <a class="point-card" href="/auth/login"><div class="lbl">트리플업</div><div class="val">로그인이 필요합니다</div></a>
+    <div class="side-foot"><a href="/auth/login"><i data-lucide="log-in" class="i i14"></i>로그인</a></div>
+    {% endif %}
+  </div>
 </aside>

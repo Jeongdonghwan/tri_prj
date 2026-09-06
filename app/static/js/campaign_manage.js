@@ -29,6 +29,16 @@
   document.querySelectorAll('tr[data-open]').forEach(function (tr) {
     tr.addEventListener('click', function (e) { if (e.target.closest('.rowact') || e.target.closest('a,button,form')) return; open(tr.dataset.open, tr); });
   });
+  // 등록/수정 모달 (data-modal="#id" 버튼)
+  document.querySelectorAll('[data-modal]').forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      var m = document.querySelector(el.dataset.modal); if (m) m.classList.add('on');
+    });
+  });
+  document.querySelectorAll('.modal').forEach(function (m) {
+    m.addEventListener('click', function (e) { if (e.target === m || e.target.closest('[data-close]')) m.classList.remove('on'); });
+  });
   var dc = document.getElementById('dclose'); if (dc) dc.addEventListener('click', close);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
   if (window.OPEN_ID) open(window.OPEN_ID, document.querySelector('tr[data-open="' + window.OPEN_ID + '"]'));

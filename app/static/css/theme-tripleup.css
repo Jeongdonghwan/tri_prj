@@ -8,11 +8,22 @@
   --radius:18px;--shadow:0 2px 6px rgba(30,20,80,.05),0 10px 28px rgba(30,20,80,.06);
 }
 
-/* ---- 플로팅 라운드 사이드바 ---- */
-.app{grid-template-columns:296px 1fr}
-.sidebar{margin:14px 0 14px 14px;height:calc(100vh - 28px);top:14px;border-radius:24px;padding:22px 14px 18px;
-  box-shadow:0 14px 40px rgba(16,18,51,.28)}
-body.admin .sidebar{background:#0B1220;border-radius:24px}
+/* ---- 일자형 고정 사이드바 (라운드·축소 없음) ---- */
+.app{grid-template-columns:280px 1fr}
+.sidebar{padding:22px 14px 18px;box-shadow:4px 0 24px rgba(16,18,51,.14)}
+body.admin .sidebar{background:#0B1220}
+/* base.css 의 768~1279px 아이콘 축소(호버 확장) 무효화 — 항상 펼친 상태로 고정 */
+@media (min-width:768px) and (max-width:1279px){
+  .app{grid-template-columns:280px 1fr}
+  .sidebar{width:auto;padding:22px 14px 18px;overflow-y:auto}
+  .sidebar .logo{justify-content:flex-start;padding:4px 10px 18px}
+  .sidebar .logo .lsym,.sidebar .logo .ltxt,.sidebar .logo small,.sidebar .nav-sec>h6,.sidebar .nav .lbl{display:inline}
+  .sidebar .nav .ext,.sidebar .nav .chev,.sidebar .nav .tag{display:inline-block}
+  .sidebar .open+.sub{display:block}
+  .sidebar .side-foot{display:flex}
+  .sidebar .point-card.on{display:block}
+  .sidebar .nav a,.sidebar .nav button{justify-content:flex-start;padding:9px 10px}
+}
 .logo{color:#fff}
 .logo .ltxt{font-weight:800}
 .nav-sec>h6{color:#5F6386}
@@ -50,4 +61,3 @@ body.admin .sidebar{background:#0B1220;border-radius:24px}
 .tw-promo p{font-size:12.5px;color:#B9BDD9;line-height:1.6;margin-bottom:14px}
 .tw-promo .btn{background:var(--lime);color:var(--lime-ink);border:none;font-weight:700}
 @media (max-width:900px){.tw-stats{grid-template-columns:1fr}}
-@media (max-width:768px){.sidebar{margin:0;border-radius:0;height:100vh;top:0}}

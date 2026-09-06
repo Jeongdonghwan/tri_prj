@@ -1,13 +1,12 @@
 {% extends "layout/base.html" %}
 {% from "macros/pagination.html" import pager %}
-{% block title %}{{ channels[channel] }} 캠페인 관리{% endblock %}
+{% block title %}캠페인 관리{% endblock %}
 {% block content %}
-<div class="ph"><div><h1>{{ channels[channel] }} 캠페인 관리</h1><p>행을 클릭하면 오른쪽에 상세가 열립니다.</p></div>
-  <div class="act"><div class="chan-tabs">{% for key, label in channels.items() %}<a href="/campaign/{{ key }}"><button type="button"{% if key == channel %} class="on"{% endif %}><i class="dot c-{{ key }}"></i>{{ label }}</button></a>{% endfor %}</div><a class="btn pri" href="/campaign/{{ channel }}/new">+ 새 캠페인</a></div></div>
+<div class="ph"><div><h1>캠페인 관리</h1><p>관리자가 발급한 슬롯에 키워드·상품을 등록하면 순위 추적이 바로 시작됩니다.</p></div></div>
 
 <div class="mstat">
+  <div class="card"><span class="k">등록 대기</span><span class="v num{% if stats.pending %} alert{% endif %}">{{ stats.pending }}<i>개</i></span><span class="d">키워드·상품을 등록해주세요</span></div>
   <div class="card"><span class="k">진행 중</span><span class="v num">{{ stats.running }}<i>건</i></span><span class="d">순위 자동 추적 중</span></div>
-  <div class="card"><span class="k">이번 달 등록 금액</span><span class="v num">{{ stats.month_paid | fmt_num }}<i>원</i></span><span class="d">{% if stats.delta is not none %}지난달 대비 {{ '+' if stats.delta >= 0 }}{{ stats.delta }}%{% else %}지난달 등록 없음{% endif %}</span></div>
   <div class="card"><span class="k">평균 순위 변동</span><span class="v num"{% if stats.avg_up and stats.avg_up > 0 %} style="color:var(--success)"{% endif %}>{% if stats.avg_up is not none %}{{ '+' if stats.avg_up >= 0 }}{{ '%.1f' % stats.avg_up }}<i>위</i>{% else %}—{% endif %}</span><span class="d">완료 {{ stats.done_n }}건 기준</span></div>
 </div>
 
@@ -18,41 +17,49 @@
   </div>
   <form class="tbar" method="get">
     {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
-    <select class="in" name="period" onchange="this.form.submit()"><option value="">전체 기간</option><option value="month"{% if period == 'month' %} selected{% endif %}>이번 달</option><option value="last"{% if period == 'last' %} selected{% endif %}>지난 달</option></select>
-    <select class="in" name="media" onchange="this.form.submit()"><option value="">모든 매체</option>{% for m in media_options %}<option value="{{ m.id }}"{% if media_id == m.id %} selected{% endif %}>{{ m.name }}</option>{% endfor %}</select>
-    <div class="search"><i data-lucide="search" class="i"></i><input class="in" name="q" value="{{ q or '' }}" placeholder="주문번호 · 업체명 · 키워드"></div>
+    <div class="search"><i data-lucide="search" class="i"></i><input class="in" name="q" value="{{ q or '' }}" placeholder="슬롯번호 · 키워드 · 상품명"></div>
   </form>
   <div style="overflow-x:auto;margin:0 -18px"><table class="ctable ref">
-    <thead><tr><th>주문번호</th><th>상태</th><th>작업 세팅키워드</th><th>순위 키워드</th><th>순위</th><th>{{ '플레이스명' if channel == 'place' else '제품명' }}</th><th>서비스</th><th>일 수량</th><th>구동</th><th>시작 일자</th><th>마감 일자</th><th>{{ '링크' if channel == 'place' else '제품 링크' }}</th><th>금액</th><th>등록 일자</th><th>기능</th></tr></thead>
+    <thead><tr><th>번호</th><th>상태</th><th>순위 키워드</th><th>순위</th><th>상품명</th><th>일 수량</th><th>남은 일수</th><th>시작일</th><th>종료일</th><th>링크</th><th>기능</th></tr></thead>
     <tbody>
     {% for r in rows %}
       <tr data-open="{{ r.id }}"{% if r.id == open_id %} class="sel"{% endif %}>
-        <td class="ord" data-l="주문번호">{{ r.order_no }}</td>
+        <td class="ord" data-l="번호">{{ r.slot_no }}</td>
         <td data-l="상태"><span class="st {{ status_class[r.status] }}">{{ status_label[r.status] }}</span></td>
-        <td data-l="세팅키워드">{% if r.setting_keywords %}<span class="mut" style="font-size:12px">{{ r.setting_keywords | join(', ') }}</span>{% else %}<span class="mut">-</span>{% endif %}</td>
-        <td data-l="순위 키워드">{{ r.main_keyword }}</td>
+        <td data-l="순위 키워드">{% if r.main_keyword %}<b>{{ r.main_keyword }}</b>{% else %}<span class="mut">미등록</span>{% endif %}</td>
         <td data-l="순위">{% if r.rank_start and r.rank_now %}<span class="rank num">{{ r.rank_start }} → <b>{{ r.rank_now }}</b>{% set d = r.rank_start - r.rank_now %}{% if d > 0 %}<span class="up">▲{{ d }}</span>{% elif d < 0 %}<span class="dn">▼{{ -d }}</span>{% endif %}</span>{% else %}<span class="mut">-</span>{% endif %}</td>
-        <td class="tname" data-l="{{ '플레이스명' if channel == 'place' else '제품명' }}"><b title="{{ r.product_name or r.biz_name }}">{{ r.product_name or r.biz_name }}</b></td>
-        <td data-l="서비스">{{ r.media_name }}</td>
+        <td class="tname" data-l="상품명">{% if r.product_name %}<b title="{{ r.product_name }}">{{ r.product_name }}</b>{% else %}<span class="mut">-</span>{% endif %}</td>
         <td class="num" data-l="일 수량">{{ r.daily_qty }}</td>
-        <td class="num" data-l="구동">{{ (r.end_date - r.start_date).days + 1 }}일</td>
-        <td class="num" data-l="시작 일자"><span class="mut">{{ r.start_date | fmt_date('%Y-%m-%d') }}</span></td>
-        <td class="num" data-l="마감 일자"><span class="mut">{{ r.end_date | fmt_date('%Y-%m-%d') }}</span></td>
-        <td data-l="{{ '링크' if channel == 'place' else '제품 링크' }}">{% if r.target_url %}<a class="lnk" href="{{ r.target_url }}" target="_blank" rel="noopener">바로가기</a>{% else %}<span class="mut">-</span>{% endif %}</td>
-        <td class="num" data-l="금액">{{ r.paid_amount | fmt_num }}</td>
-        <td class="num" data-l="등록 일자"><span class="mut">{{ r.created_at | fmt_date('%Y-%m-%d') }}</span></td>
-        <td data-l="기능"><div class="rowact">
-          <button type="button" data-ranks="{{ r.id }}">순위표</button>
-          {% if r.status == 'running' %}<a href="/campaign/{{ channel }}/new?extend={{ r.id }}"><button type="button">기간연장</button></a><form method="post" action="/campaign/{{ channel }}/{{ r.id }}/stop" onsubmit="return confirm('캠페인을 중단할까요? 순위 추적도 함께 종료됩니다.')"><button type="submit">중단</button></form>
-          {% else %}<a href="/campaign/{{ channel }}/new?extend={{ r.id }}"><button type="button">기간연장</button></a>{% endif %}
+        <td class="num" data-l="남은 일수">{% if r.status == 'running' %}{{ r.prog.total - r.prog.elapsed }}일{% elif r.status == 'pending' %}<span class="mut">{{ r.prog.total }}일</span>{% else %}<span class="mut">-</span>{% endif %}</td>
+        <td class="num" data-l="시작일"><span class="mut">{{ r.start_date | fmt_date('%Y-%m-%d') }}</span></td>
+        <td class="num" data-l="종료일"><span class="mut">{{ r.end_date | fmt_date('%Y-%m-%d') }}</span></td>
+        <td data-l="링크">{% if r.target_url %}<a class="lnk" href="{{ r.target_url }}" target="_blank" rel="noopener">바로가기</a>{% else %}<span class="mut">-</span>{% endif %}</td>
+        <td data-l="기능"><div class="rowact" style="opacity:1">
+          {% if r.status == 'pending' %}<button type="button" class="btn pri sm" data-modal="#fill{{ r.id }}">등록</button>
+          {% elif r.status == 'running' %}<button type="button" data-ranks="{{ r.id }}">순위표</button><button type="button" data-modal="#fill{{ r.id }}">수정</button><form method="post" action="/campaign/{{ channel }}/{{ r.id }}/stop" onsubmit="return confirm('캠페인을 중단할까요? 순위 추적도 함께 종료됩니다.')"><button type="submit">중단</button></form>
+          {% else %}<button type="button" data-ranks="{{ r.id }}">순위표</button>{% endif %}
         </div></td>
       </tr>
     {% else %}
-      <tr><td colspan="15"><div class="empty"><i data-lucide="inbox"></i>{% if status or q or media_id or period %}조건에 맞는 캠페인이 없습니다.{% else %}아직 캠페인이 없습니다. 첫 캠페인을 만들어보세요.{% endif %}</div></td></tr>
+      <tr><td colspan="11"><div class="empty"><i data-lucide="inbox"></i>{% if status or q %}조건에 맞는 슬롯이 없습니다.{% else %}발급된 캠페인 슬롯이 없습니다. 관리자에게 문의해주세요.{% endif %}</div></td></tr>
     {% endfor %}
     </tbody></table></div>
-  {{ pager(page, total_pages, 'campaign.manage', channel=channel, status=status, period=period, media=media_id, q=q) }}
+  {{ pager(page, total_pages, 'campaign.manage', channel=channel, status=status, q=q) }}
 </div></div>
+
+{# 등록/수정 모달 (행마다) #}
+{% for r in rows %}{% if r.status in ('pending', 'running') %}
+<div class="modal" id="fill{{ r.id }}">
+  <form class="modal-box" method="post" action="/campaign/{{ channel }}/{{ r.id }}/fill">
+    <h3>슬롯 {{ r.slot_no }} {{ '등록' if r.status == 'pending' else '수정' }} <span class="thin">{{ r.start_date | fmt_date }}~{{ r.end_date | fmt_date }} · 일 {{ r.daily_qty }}건</span></h3>
+    <div class="f" style="margin-top:12px"><label>상품명 *</label><input class="in" name="product_name" value="{{ r.product_name or '' }}" placeholder="예) 아우라 방향제 200ml" required></div>
+    <div class="f"><label>순위 키워드 *</label><input class="in" name="main_keyword" value="{{ r.main_keyword or '' }}" placeholder="예) 아우라 방향제" required></div>
+    <div class="f"><label>상품 URL *</label><input class="in" name="target_url" value="{{ r.target_url or '' }}" placeholder="https://smartstore.naver.com/..." required><div class="hint">옵션 상품은 옵션 미선택 URL로 등록해주세요.</div></div>
+    {% if r.status == 'running' %}<p class="thin" style="margin-bottom:10px">키워드나 URL을 바꾸면 순위 추적이 새로 시작됩니다.</p>{% endif %}
+    <div style="display:flex;gap:8px"><button class="btn sec" type="button" data-close style="flex:1">취소</button><button class="btn pri" type="submit" style="flex:1">{{ '등록하고 추적 시작' if r.status == 'pending' else '수정 저장' }}</button></div>
+  </form>
+</div>
+{% endif %}{% endfor %}
 
 <div class="modal" id="rankModal"><div class="modal-box" style="max-width:840px;max-height:88vh;overflow-y:auto;padding:18px 20px" id="rankBody"></div></div>
 <div class="drawer" id="drawer"><div class="dh"><h3>불러오는 중…</h3><button class="icon-btn x" id="dclose" type="button"><i data-lucide="x" class="i"></i></button></div><div class="db" id="drawerBody"></div></div>

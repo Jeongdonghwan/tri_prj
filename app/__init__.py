@@ -19,14 +19,7 @@ MENU = {
         {
             "title": "유입관리",
             "items": [
-                {
-                    "label": "쇼핑·스토어", "icon": "shopping-bag", "key": "store",
-                    "children": [
-                        {"label": "캠페인 생성", "href": "/campaign/store/new"},
-                        {"label": "캠페인 관리", "href": "/campaign/store"},
-                        {"label": "쇼핑 작업량 권장 체크", "href": "/campaign/store/slots"},
-                    ],
-                },
+                {"label": "캠페인 관리", "icon": "shopping-bag", "href": "/campaign/store"},
             ],
         },
     ],
@@ -84,7 +77,7 @@ _LINKS = _flatten_menu()
 
 
 def resolve_active(path):
-    """Longest-prefix match so /campaign/store and /campaign/store/new are distinct."""
+    """Longest-prefix match."""
     best = None
     for href, parent, label in _LINKS:
         if path == href or (href != "/" and path.startswith(href + "/")):
@@ -102,7 +95,7 @@ def create_app():
     db.init_app(app)
 
     from .blueprints import main, auth, notice, campaign, my, admin, rank_api, notifications
-    for bp in (main.bp, auth.bp, notice.bp, campaign.bp, campaign.api, my.bp, admin.bp,
+    for bp in (main.bp, auth.bp, notice.bp, campaign.bp, my.bp, admin.bp,
                rank_api.bp, notifications.notif_bp):
         app.register_blueprint(bp)
 

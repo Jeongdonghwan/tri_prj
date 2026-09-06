@@ -1,27 +1,15 @@
-// Admin screens: modals, reject flow, bulk select, row actions, toggles, badge tabs, content editor, countdown.
+// Admin screens: modals, row actions, toggles, badge tabs, content editor.
 (function () {
   var $ = function (id) { return document.getElementById(id); };
 
   // ---- generic modals / checkboxes
-  document.querySelectorAll('[data-modal]').forEach(function (el) { el.addEventListener('click', function (e) { e.preventDefault(); $(el.dataset.modal).classList.add('on'); }); });
+  document.querySelectorAll('[data-modal]').forEach(function (el) { el.addEventListener('click', function (e) { e.preventDefault(); var m = $(el.dataset.modal.replace(/^#/, '')); if (m) m.classList.add('on'); }); });
   document.querySelectorAll('.modal').forEach(function (m) { m.addEventListener('click', function (e) { if (e.target === m || e.target.closest('[data-close]')) m.classList.remove('on'); }); });
   document.querySelectorAll('label.chk').forEach(function (c) { c.addEventListener('click', function () { setTimeout(function () { c.classList.toggle('on', c.querySelector('input').checked); }, 0); }); });
 
   // ---- 13:30 countdown
   var cd = $('cd2');
   if (cd) { (function t() { var n = new Date(), d = new Date(); d.setHours(13, 30, 0, 0); if (d < n) d.setDate(d.getDate() + 1); var s = Math.floor((d - n) / 1000); cd.textContent = String(Math.floor(s / 3600)).padStart(2, '0') + ':' + String(Math.floor(s % 3600 / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); setTimeout(t, 1000); })(); }
-
-  // ---- reject modal (single + bulk)
-  var rm = $('rejectModal');
-  function openReject(ids, order, back) {
-    if (!rm) return;
-    var f = $('rejectForm'), box = $('rejectIds'); box.innerHTML = '';
-    if (ids.length === 1 && !order.startsWith('bulk')) { f.action = '/admin/orders/' + ids[0] + '/action'; }
-    else { f.action = '/admin/orders/bulk'; ids.forEach(function (id) { var i = document.createElement('input'); i.type = 'hidden'; i.name = 'ids'; i.value = id; box.appendChild(i); }); }
-    $('rejectOrder').textContent = order; $('rejectBack').value = back || location.pathname + location.search;
-    rm.classList.add('on'); rm.querySelector('textarea').focus();
-  }
-  document.querySelectorAll('[data-reject]').forEach(function (b) { b.addEventListener('click', function () { openReject([b.dataset.reject], b.dataset.order, b.dataset.back); }); });
 
   // ---- quick row actions (approve/start/stop/done/paid)
   document.querySelectorAll('[data-act]').forEach(function (b) {
@@ -34,7 +22,6 @@
   document.querySelectorAll('.statusForm select').forEach(function (s) {
     s.addEventListener('change', function () {
       var f = s.closest('form');
-      if (s.value === 'rejected') { openReject([f.dataset.id], f.dataset.order); s.selectedIndex = 0; return; }
       if (s.value !== s.options[0].value) f.submit();
     });
   });
@@ -42,13 +29,6 @@
   document.querySelectorAll('[data-memo]').forEach(function (b) {
     b.addEventListener('click', function () { $('memoForm').action = '/admin/orders/' + b.dataset.memo + '/action'; $('memoOrder').textContent = b.dataset.order; $('memoText').value = b.dataset.text; $('memoModal').classList.add('on'); });
   });
-
-  // ---- bulk selection
-  var chks = document.querySelectorAll('.rowchk'), bar = $('bulkBar');
-  function refreshBulk() { var n = document.querySelectorAll('.rowchk:checked').length; if (bar) { bar.style.display = n ? 'flex' : 'none'; $('bulkCount').textContent = n; } }
-  chks.forEach(function (c) { c.addEventListener('change', refreshBulk); });
-  var all = $('chkAll'); if (all) all.addEventListener('change', function () { chks.forEach(function (c) { c.checked = all.checked; }); refreshBulk(); });
-  var br = $('bulkReject'); if (br) br.addEventListener('click', function () { var ids = Array.prototype.map.call(document.querySelectorAll('.rowchk:checked'), function (c) { return c.value; }); if (ids.length) openReject(ids, 'bulk ' + ids.length + '건'); });
 
   // ---- fetch toggles (media / popular visibility)
   document.querySelectorAll('[data-toggle]').forEach(function (t) {

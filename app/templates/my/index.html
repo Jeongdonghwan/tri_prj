@@ -34,7 +34,7 @@
     <ul class="homelist">
     {% for c in recent %}
       <li><span class="st {{ status_class.get(c.status, '') }}" style="font-size:11px">{{ status_label.get(c.status, c.status) }}</span>
-        <a href="/campaign/store?q={{ c.order_no }}">{{ c.main_keyword }}</a><span class="hnick">{{ c.start_date | fmt_date }}~</span></li>
+        <a href="/campaign/store?open={{ c.id }}">{{ c.main_keyword or "슬롯 " ~ c.slot_no }}</a><span class="hnick">{{ c.start_date | fmt_date }}~</span></li>
     {% else %}
       <li><span class="hnick">캠페인이 없습니다.</span></li>
     {% endfor %}

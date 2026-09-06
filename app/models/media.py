@@ -19,7 +19,7 @@ def recent_intake(channel, days=7):
     """{media_id: [count per day, oldest first]} for the last `days` days."""
     rows = query(
         """SELECT media_id, DATE(created_at) AS d, COUNT(*) AS n FROM campaigns
-           WHERE channel = %s AND created_at >= DATE_SUB(CURDATE(), INTERVAL %s DAY) AND status <> 'cancelled'
+           WHERE channel = %s AND created_at >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
            GROUP BY media_id, DATE(created_at)""",
         [channel, days - 1],
     )
@@ -32,7 +32,7 @@ def recent_intake(channel, days=7):
 def month_intake_counts():
     rows = query(
         """SELECT media_id, COUNT(*) AS n FROM campaigns
-           WHERE created_at >= DATE_FORMAT(CURDATE(), '%%Y-%%m-01') AND status <> 'cancelled' GROUP BY media_id"""
+           WHERE created_at >= DATE_FORMAT(CURDATE(), '%%Y-%%m-01') GROUP BY media_id"""
     )
     return {r["media_id"]: r["n"] for r in rows}
 

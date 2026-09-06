@@ -9,7 +9,7 @@ bbe_prj 에서 **공지사항 + 쇼핑캠페인 관리**만 발췌해 만든 내
 - **전체 화면 로그인 필수** (`app/__init__.py` `_force_login`). 예외: /auth/*, /static/*, /api/rank/callback
 - **회원가입 없음** — 관리자가 /admin/users 에서 계정 발급 (Malon_Project 방식: 아이디/비번/권한/회사/메모)
 - 로그 기록: 로그인·계정 발급/수정·캠페인 처리 전부 admin_log → /admin/logs 화면
-- 디자인: 다크 네이비 라운드 사이드바 + 라임 액센트 + 라벤더 배경 (`css/theme-tripleup.css` 오버라이드)
+- 디자인: 다크 네이비 일자형 고정 사이드바(축소 없음) + 라임 액센트 + 라벤더 배경 (`css/theme-tripleup.css` 오버라이드)
 
 ## 스택
 - Python 3.11+, Flask 3, Jinja2 SSR, pymysql(raw SQL, ORM 금지), MariaDB 10.6, 바닐라 JS
@@ -23,9 +23,13 @@ bbe_prj 에서 **공지사항 + 쇼핑캠페인 관리**만 발췌해 만든 내
 - .env: RANK_SERVER_URL / RANK_API_TOKEN(=rankserver NSR_PARTNER_TOKEN) / RANK_CALLBACK_TOKEN
 - 폴백: 순위표(ranks) 열람 시 오늘 순위 없고 5분 경과면 fetch_ranks 로 보정
 
-## 상태 모델
-`running → done | stopped` 만. 등록 = 즉시 running (결제 플로우 없음).
-상태 변경은 campaign_service.transition()/stop() 외 경로 금지 (status_log 기록).
+## 캠페인 = 발급형 슬롯 (Malon 방식)
+- 어드민이 계정 관리(/admin/users)에서 슬롯을 발급한다 — 매체·기간·일 수량·개수는 어드민 소관.
+- 슬롯번호(slot_no)는 계정마다 1부터. 주문번호 없음. 결제·금액 개념 전부 없음.
+- 사용자는 캠페인 관리 목록의 모달로 키워드·상품·URL 만 등록/수정 → 등록 순간 running + 순위 추적 시작.
+- 진행 중 키워드·URL 변경 시 추적을 갈아탄다 (campaign_service.fill).
+- 상태: `pending → running → done | stopped`. 변경은 campaign_service.transition()/stop() 외 경로 금지.
+- 기간·수량 변경은 어드민 주문 관리(/admin/orders)의 기간·수량 모달 (campaign_service.update_terms).
 
 ## 규칙
 - 관리자 쓰기 + 로그인은 admin_log 에 기록 (`_log()` / auth.\_login)

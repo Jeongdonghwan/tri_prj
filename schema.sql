@@ -48,34 +48,24 @@ CREATE TABLE IF NOT EXISTS media (
   INDEX idx_media_channel (channel, is_active, sort)
 ) ENGINE=InnoDB;
 
--- 등록 즉시 running. track_id = rankserver 슬롯 id (콜백 매핑 키).
+-- 어드민이 발급하는 캠페인 슬롯. slot_no 는 계정마다 1부터.
+-- pending(등록 대기) → 사용자가 키워드·상품 등록 시 running. track_id = rankserver 슬롯 id (콜백 매핑 키).
 CREATE TABLE IF NOT EXISTS campaigns (
   id               INT AUTO_INCREMENT PRIMARY KEY,
-  order_no         CHAR(10) NOT NULL UNIQUE,
+  slot_no          INT NOT NULL,
   user_id          INT NOT NULL,
   channel          ENUM('store') NOT NULL DEFAULT 'store',
   media_id         INT NOT NULL,
-  status           ENUM('running','done','stopped') NOT NULL DEFAULT 'running',
-  biz_name         VARCHAR(80) NOT NULL,
+  status           ENUM('pending','running','done','stopped') NOT NULL DEFAULT 'pending',
   product_name     VARCHAR(120) NULL,
-  target_url       VARCHAR(500) NOT NULL,
-  main_keyword     VARCHAR(60) NOT NULL,
-  sub_keywords     JSON NULL,
+  target_url       VARCHAR(500) NULL,
+  main_keyword     VARCHAR(60) NULL,
   setting_keywords JSON NULL,
-  keyword_mode     ENUM('ai','manual') NOT NULL DEFAULT 'ai',
-  extra            JSON NULL,
+  warn_words       VARCHAR(300) NULL,
   start_date       DATE NOT NULL,
   end_date         DATE NOT NULL,
   daily_qty        INT NOT NULL,
   total_qty        INT NOT NULL,
-  unit_price       INT NOT NULL,
-  discount         INT NOT NULL DEFAULT 0,
-  vat              INT NOT NULL DEFAULT 0,
-  paid_amount      INT NOT NULL DEFAULT 0,
-  pay_method       ENUM('card','bank') NOT NULL DEFAULT 'card',
-  paid_at          DATETIME NULL,
-  refund_amount    INT NOT NULL DEFAULT 0,
-  warn_words       VARCHAR(300) NULL,
   rank_start       INT NULL,
   rank_now         INT NULL,
   track_id         INT NULL,
@@ -83,6 +73,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
   admin_memo       TEXT NULL,
   created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_campaign_slot (user_id, slot_no),
   INDEX idx_campaign_user (user_id, channel, status),
   INDEX idx_campaign_status (status, created_at),
   INDEX idx_campaign_track (track_id, status),
@@ -168,60 +159,6 @@ CREATE TABLE IF NOT EXISTS notifications (
   is_read    TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_notifications_user (user_id, is_read, created_at)
-) ENGINE=InnoDB;
-
--- ---------------------------------------------------------------- 쇼핑 작업량 권장 체크 / 키워드 도구
-CREATE TABLE IF NOT EXISTS store_slots (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  user_id     INT NOT NULL,
-  keyword     VARCHAR(60) NOT NULL,
-  product_url VARCHAR(500) NULL,
-  store_name  VARCHAR(80) NULL,
-  pc_cnt      INT NOT NULL DEFAULT 0,
-  mo_cnt      INT NOT NULL DEFAULT 0,
-  reco_qty    INT NOT NULL DEFAULT 1,
-  fetched_at  DATETIME NULL,
-  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_store_slots_user (user_id),
-  FOREIGN KEY (user_id) REFERENCES users(id)
-) ENGINE=InnoDB;
-
-CREATE TABLE IF NOT EXISTS slot_daily (
-  slot_id    INT NOT NULL,
-  date       DATE NOT NULL,
-  rank_total INT NULL,
-  rank_price INT NULL,
-  PRIMARY KEY (slot_id, date),
-  FOREIGN KEY (slot_id) REFERENCES store_slots(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
-CREATE TABLE IF NOT EXISTS keyword_cache (
-  keyword    VARCHAR(60) PRIMARY KEY,
-  pc_cnt     INT NOT NULL DEFAULT 0,
-  mo_cnt     INT NOT NULL DEFAULT 0,
-  comp       VARCHAR(10) NULL,
-  fetched_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
-
-CREATE TABLE IF NOT EXISTS related_cache (
-  id         INT AUTO_INCREMENT PRIMARY KEY,
-  seed       VARCHAR(60) NOT NULL,
-  keyword    VARCHAR(60) NOT NULL,
-  pc_cnt     INT NOT NULL DEFAULT 0,
-  mo_cnt     INT NOT NULL DEFAULT 0,
-  fetched_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_related_seed (seed)
-) ENGINE=InnoDB;
-
-CREATE TABLE IF NOT EXISTS keyword_query_log (
-  id         INT AUTO_INCREMENT PRIMARY KEY,
-  user_id    INT NULL,
-  ip         VARCHAR(45) NOT NULL,
-  tool       VARCHAR(20) NOT NULL,
-  query      VARCHAR(300) NOT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_kql_user (user_id, created_at),
-  INDEX idx_kql_ip (ip, created_at)
 ) ENGINE=InnoDB;
 
 SET FOREIGN_KEY_CHECKS = 1;

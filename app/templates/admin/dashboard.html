@@ -4,12 +4,13 @@
 <div class="ph"><div><h1>운영 현황</h1><p>지금 처리해야 할 것부터.</p></div></div>
 <div class="queue">
   <a class="card" href="/admin/orders?status=running"><span class="k">오늘 순위 미수집</span><span class="v num{% if no_rank %} alert{% endif %}">{{ no_rank }}</span><span class="d">진행 중 {{ running }}건</span></a>
-  <a class="card" href="/admin/orders?period=today"><span class="k">오늘 접수</span><span class="v num">{{ today_n }}</span><span class="d">{{ today_amount | won }}</span></a>
+  <a class="card" href="/admin/orders?status=pending"><span class="k">등록 대기 슬롯</span><span class="v num">{{ pending }}</span><span class="d">사용자 등록 대기</span></a>
+  <a class="card" href="/admin/orders?period=today"><span class="k">오늘 발급</span><span class="v num">{{ today_n }}</span><span class="d">슬롯 기준</span></a>
   <a class="card" href="/admin/logs"><span class="k">로그 기록</span><span class="v num"><i data-lucide="scroll-text" class="i"></i></span><span class="d">로그인 · 계정 · 캠페인 처리</span></a>
 </div>
 <div class="grid2">
-  <div class="card"><div class="ch"><h3>매체사별 오늘 접수</h3></div><div class="cb">
-    {% for m in by_media %}<div class="kv"><span>{{ m.name }}</span><b class="num">{{ m.n }}건 · {{ m.amount | won }}</b></div>{% else %}<div class="empty" style="padding:12px 0">오늘 접수 없음</div>{% endfor %}
+  <div class="card"><div class="ch"><h3>매체사별 오늘 발급</h3></div><div class="cb">
+    {% for m in by_media %}<div class="kv"><span>{{ m.name }}</span><b class="num">{{ m.n }}건</b></div>{% else %}<div class="empty" style="padding:12px 0">오늘 발급 없음</div>{% endfor %}
   </div></div>
   <div class="card"><div class="ch"><h3>최근 처리</h3><a class="more" href="/admin/logs">로그 기록<i data-lucide="chevron-right" class="i i14"></i></a></div><div class="cb"><ul class="timeline" style="margin-top:4px">
     {% for l in logs %}<li class="on"><b>{{ l.summary or l.action }}</b><span>{{ l.created_at | fmt_date('%m.%d %H:%M') }} · {{ l.admin_name or '시스템' }}</span></li>{% else %}<li><span class="thin">처리 이력이 없습니다.</span></li>{% endfor %}

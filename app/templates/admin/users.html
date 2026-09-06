@@ -17,6 +17,7 @@
       <td class="num mut">{{ u.last_login_at | fmt_date('%Y.%m.%d %H:%M') if u.last_login_at else '-' }}</td>
       <td>{% if u.status == 'active' %}<span class="st s-run">정상</span>{% else %}<span class="st s-rej">정지</span>{% endif %}</td>
       <td><div class="rowact" style="opacity:1">
+        <button type="button" class="btn pri sm" data-modal="#userIssue{{ u.id }}">슬롯 발급</button>
         <button type="button" data-modal="#userEdit{{ u.id }}">수정</button>
         {% if u.id != current_user.id %}<form method="post" action="/admin/users/{{ u.id }}/status?q={{ q or '' }}" onsubmit="return confirm('상태를 변경할까요?')"><button type="submit"{% if u.status == 'active' %} style="color:var(--danger)"{% endif %}>{{ '정지' if u.status == 'active' else '정지 해제' }}</button></form>{% endif %}
       </div></td></tr>
@@ -38,6 +39,21 @@
     <div style="display:flex;gap:8px"><button class="btn sec" type="button" data-close style="flex:1">취소</button><button class="btn pri" type="submit" style="flex:1">발급</button></div>
   </form>
 </div>
+
+{# 캠페인 슬롯 발급 모달 (행마다) — 기간·수량은 어드민이 정하고, 사용자는 내용만 등록한다 #}
+{% for u in rows %}
+<div class="modal" id="userIssue{{ u.id }}">
+  <form class="modal-box" method="post" action="/admin/users/{{ u.id }}/issue?q={{ q or '' }}">
+    <h3>{{ u.username }} 슬롯 발급</h3>
+    <p class="thin" style="margin:4px 0 12px">발급하면 등록 대기 슬롯이 생기고, 사용자가 키워드·상품을 등록하면 추적이 시작됩니다.</p>
+    <div class="f"><label>매체</label><select class="in" name="media_id">{% for m in medias %}<option value="{{ m.id }}">{{ m.name }}</option>{% endfor %}</select></div>
+    <div class="f"><label>기간</label><div class="row2"><input class="in" type="date" name="start_date" value="{{ issue_start }}" required><input class="in" type="date" name="end_date" value="{{ issue_end }}" required></div></div>
+    <div class="f"><label>일 작업량</label><input class="in" type="number" name="daily_qty" value="100" min="1" required></div>
+    <div class="f"><label>발급 개수</label><input class="in" type="number" name="count" value="1" min="1" max="50" required></div>
+    <div style="display:flex;gap:8px"><button class="btn sec" type="button" data-close style="flex:1">취소</button><button class="btn pri" type="submit" style="flex:1">발급</button></div>
+  </form>
+</div>
+{% endfor %}
 
 {# 계정 수정 모달 (행마다) #}
 {% for u in rows %}

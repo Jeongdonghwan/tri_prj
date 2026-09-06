@@ -75,7 +75,7 @@ def seed():
 
     cur.execute("SET FOREIGN_KEY_CHECKS=0")
     for t in ("contents", "media", "forbidden_words", "admin_log", "campaign_daily", "status_log",
-              "campaigns", "store_slots", "slot_daily", "settings", "notifications", "users"):
+              "campaigns", "settings", "notifications", "users"):
         cur.execute(f"TRUNCATE TABLE {t}")
 
     # 계정 (관리자 발급형 — 회원가입 없음)

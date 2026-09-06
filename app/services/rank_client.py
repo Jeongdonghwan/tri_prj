@@ -1,6 +1,6 @@
 """순위 서버(rankserver) 파트너 API 클라이언트.
 
-프로젝트 관례(naver_ad.py)대로 urllib 사용. 네트워크 실패가 캠페인 등록을 막지 않도록
+의존성 없이 urllib 사용. 네트워크 실패가 캠페인 등록을 막지 않도록
 예외를 던지지 않고 {"error": ...} 를 반환한다 — 호출측은 track_status 로만 기록.
 """
 import json

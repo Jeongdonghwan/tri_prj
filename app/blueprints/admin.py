@@ -1,5 +1,4 @@
 """/admin/* — operator screens. Every write is recorded in admin_log."""
-import csv
 import io
 import re
 from datetime import date, datetime
@@ -45,13 +44,11 @@ def _page():
 @admin_required
 def index():
     counts = campaign_model.admin_status_counts()
-    intake = campaign_model.today_intake()
     return render_template(
         "admin/dashboard.html",
-        q_review=0, oldest=None, q_bank=0, bank_total=0,
         no_rank=campaign_model.running_without_today_rank(), running=counts.get("running", 0),
-        reports=0, today_n=intake["n"], today_amount=int(intake["amount"]),
-        queue=[], by_media=campaign_model.today_intake_by_media(5), logs=admin_log.recent(10),
+        pending=counts.get("pending", 0), today_n=campaign_model.today_intake()["n"],
+        by_media=campaign_model.today_intake_by_media(5), logs=admin_log.recent(10),
         channel_label=CHANNEL_LABEL,
     )
 
@@ -72,7 +69,7 @@ def orders():
     page, per_page = _page()
     rows = campaign_model.admin_list(status, channel, media_id, period, q, page, per_page)
     for r in rows:
-        r["warn"] = forbidden_service.check([r["biz_name"], r["product_name"], r["main_keyword"], *(r["setting_keywords"] or [])], r["channel"])
+        r["warn"] = forbidden_service.check([r["product_name"], r["main_keyword"]], r["channel"])
         r["day_idx"] = campaign_service.day_index(r)
         r["total_days"] = campaign_service.days_between(r["start_date"], r["end_date"])
         r["today"] = campaign_model.today_rank(r["id"]) if r["status"] == "running" else None
@@ -87,22 +84,20 @@ def orders():
 
 
 def _apply_action(c, action, reason=""):
-    """Shared by single/bulk actions. Returns (ok, message)."""
+    """단건/드롭다운 공용. (ok, message) 반환."""
+    label = f"{c['user_username'] if c.get('user_username') else ''} 슬롯{c['slot_no']}"
     try:
-        if action == "start":
-            c = campaign_service.transition(c, "running", g.user["id"], "구동 시작")
-            _log("order_start", "campaign", c["id"], f"{c['order_no']} 구동 시작")
-        elif action == "stop":
+        if action == "stop":
             c = campaign_service.stop(c, g.user["id"], "운영팀 중단")
-            _log("order_stop", "campaign", c["id"], f"{c['order_no']} 중단")
+            _log("order_stop", "campaign", c["id"], f"{label} 중단")
         elif action == "done":
             c = campaign_service.transition(c, "done", g.user["id"], f"구동 완료 · 누적 {campaign_model.total_done_qty(c['id']):,}건")
-            _log("order_done", "campaign", c["id"], f"{c['order_no']} 완료")
+            _log("order_done", "campaign", c["id"], f"{label} 완료")
         else:
             return False, "알 수 없는 작업"
-        return True, f"{c['order_no']} → {STATUS_LABEL[c['status']]}"
+        return True, f"{label} → {STATUS_LABEL[c['status']]}"
     except campaign_service.CampaignError as e:
-        return False, f"{c['order_no']}: {e}"
+        return False, f"{label}: {e}"
 
 
 @bp.route("/orders/<int:campaign_id>/action", methods=["POST"])
@@ -112,11 +107,11 @@ def order_action(campaign_id):
     action = request.form.get("action", "")
     if action == "memo":
         campaign_model.set_admin_memo(c["id"], (request.form.get("memo") or "").strip()[:1000])
-        _log("order_memo", "campaign", c["id"], f"{c['order_no']} 메모 수정")
+        _log("order_memo", "campaign", c["id"], f"슬롯{c['slot_no']} 메모 수정")
         flash("메모를 저장했습니다.")
     elif action == "status":
         target = request.form.get("status")
-        mapping = {"running": "start", "stopped": "stop", "done": "done"}
+        mapping = {"stopped": "stop", "done": "done"}
         ok, msg = _apply_action(c, mapping.get(target, ""), request.form.get("reason", ""))
         flash(msg)
     else:
@@ -134,8 +129,8 @@ def order_rank(campaign_id):
         rank = int(request.form.get("rank"))
         done_qty = int(request.form.get("done_qty") or c["daily_qty"])
         c = campaign_service.record_rank(c, day, rank, done_qty, g.user["id"])
-        _log("order_rank", "campaign", c["id"], f"{c['order_no']} 순위 입력 {day:%m.%d} {c['rank_start']}→{rank} · {done_qty}건")
-        flash(f"{c['order_no']} 순위 저장: {rank}위")
+        _log("order_rank", "campaign", c["id"], f"슬롯{c['slot_no']} 순위 입력 {day:%m.%d} {c['rank_start']}→{rank} · {done_qty}건")
+        flash(f"순위 저장: {rank}위")
     except (ValueError, TypeError):
         flash("순위/수량을 숫자로 입력해주세요.")
     except campaign_service.CampaignError as e:
@@ -143,22 +138,21 @@ def order_rank(campaign_id):
     return _back(url_for("admin.orders"))
 
 
-@bp.route("/orders/bulk", methods=["POST"])
+@bp.route("/orders/<int:campaign_id>/terms", methods=["POST"])
 @admin_required
-def orders_bulk():
-    ids = [int(i) for i in request.form.getlist("ids") if i.isdigit()]
-    action = request.form.get("action")
-    reason = request.form.get("reason", "")
-    ok_n, msgs = 0, []
-    for cid in ids:
-        c = campaign_model.get(cid)
-        if not c:
-            continue
-        ok, msg = _apply_action(c, action, reason)
-        ok_n += ok
-        if not ok:
-            msgs.append(msg)
-    flash(f"{ok_n}건 처리" + (" · 실패: " + "; ".join(msgs) if msgs else ""))
+def order_terms(campaign_id):
+    c = campaign_model.get(campaign_id) or abort(404)
+    try:
+        s_ = date.fromisoformat(request.form.get("start_date", ""))
+        e_ = date.fromisoformat(request.form.get("end_date", ""))
+        dq = int(request.form.get("daily_qty", "0"))
+        c = campaign_service.update_terms(c, g.user["id"], s_, e_, dq)
+        _log("order_terms", "campaign", c["id"], f"슬롯{c['slot_no']} 기간·수량 변경 {s_}~{e_} · 일 {dq}건")
+        flash("기간·수량을 변경했습니다.")
+    except ValueError:
+        flash("기간/수량 형식을 확인해주세요.")
+    except campaign_service.CampaignError as e:
+        flash(str(e))
     return _back(url_for("admin.orders"))
 
 
@@ -171,43 +165,16 @@ def orders_export():
     rows = campaign_model.admin_all(status if status in STATUS_LABEL else None, channel if channel in CHANNEL_LABEL else None,
                                     request.args.get("media", type=int), request.args.get("period") or None, request.args.get("q") or None)
     wb = Workbook(); ws = wb.active; ws.title = "orders"
-    ws.append(["주문번호", "상태", "채널", "회원", "아이디", "업체", "상품", "키워드", "매체", "시작", "종료", "일 수량", "총 수량",
-               "단가", "할인", "VAT", "금액", "환불", "결제수단", "시작 순위", "현재 순위", "링크", "등록일"])
+    ws.append(["아이디", "슬롯번호", "상태", "상품", "키워드", "매체", "시작", "종료", "일 수량", "총 수량",
+               "시작 순위", "현재 순위", "링크", "등록일"])
     for r in rows:
-        ws.append([r["order_no"], STATUS_LABEL[r["status"]], CHANNEL_LABEL[r["channel"]], r["nickname"], r["user_username"], r["biz_name"],
-                   r["product_name"], r["main_keyword"], r["media_name"], r["start_date"], r["end_date"], r["daily_qty"], r["total_qty"],
-                   r["unit_price"], r["discount"], r["vat"], r["paid_amount"], r["refund_amount"], "-",
+        ws.append([r["user_username"], r["slot_no"], STATUS_LABEL[r["status"]], r["product_name"], r["main_keyword"],
+                   r["media_name"], r["start_date"], r["end_date"], r["daily_qty"], r["total_qty"],
                    r["rank_start"], r["rank_now"], r["target_url"], r["created_at"]])
     buf = io.BytesIO(); wb.save(buf); buf.seek(0)
     _log("order_export", None, None, f"엑셀 내보내기 {len(rows)}건")
     return send_file(buf, as_attachment=True, download_name=f"orders_{date.today():%Y%m%d}.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
-
-@bp.route("/orders/rank-upload", methods=["POST"])
-@admin_required
-def orders_rank_upload():
-    f = request.files.get("file")
-    if not f:
-        flash("CSV 파일을 선택해주세요.")
-        return redirect(url_for("admin.orders"))
-    text = f.read().decode("utf-8-sig", errors="replace")
-    ok_n, errs = 0, []
-    for i, row in enumerate(csv.reader(io.StringIO(text)), 1):
-        if not row or row[0].strip().lower() in ("order_no", ""):
-            continue
-        try:
-            order_no, d, rank, done = [x.strip() for x in row[:4]]
-            c = campaign_model.get_by_order_no(order_no)
-            if not c:
-                errs.append(f"{i}행 주문 없음"); continue
-            campaign_service.record_rank(c, date.fromisoformat(d), int(rank), int(done), g.user["id"])
-            ok_n += 1
-        except (ValueError, IndexError, campaign_service.CampaignError) as e:
-            errs.append(f"{i}행 {e}")
-    _log("order_rank_upload", None, None, f"순위 CSV 업로드 {ok_n}건" + (f", 오류 {len(errs)}" if errs else ""))
-    flash(f"순위 {ok_n}건 반영" + (" · 오류: " + "; ".join(errs[:5]) if errs else ""))
-    return redirect(url_for("admin.orders"))
 
 
 # =============================================================== media
@@ -444,8 +411,11 @@ def users():
     status = request.args.get("status") or None
     page, per_page = _page()
     rows, total = user_model.list_admin(q, status if status in ("active", "suspended") else None, page, per_page)
+    from datetime import timedelta
     return render_template("admin/users.html", rows=rows, q=q, status=status, page=page,
-                           total_pages=max(1, -(-total // per_page)), counts=user_model.count_by_status())
+                           total_pages=max(1, -(-total // per_page)), counts=user_model.count_by_status(),
+                           medias=media_model.list_by_channel("store", False),
+                           issue_start=date.today(), issue_end=date.today() + timedelta(days=29))
 
 
 @bp.route("/users/create", methods=["POST"])
@@ -494,6 +464,30 @@ def user_update(user_id):
     return redirect(url_for("admin.users", q=request.args.get("q")))
 
 
+@bp.route("/users/<int:user_id>/issue", methods=["POST"])
+@admin_required
+def user_issue(user_id):
+    """계정에 캠페인 슬롯 발급 — 기간·일 수량·개수는 어드민이 정하고, 사용자는 내용만 등록."""
+    u = user_model.get_by_id(user_id) or abort(404)
+    media_ = media_model.get(request.form.get("media_id", type=int) or 0)
+    if not media_ or not media_["is_active"]:
+        flash("매체를 선택해주세요.")
+        return redirect(url_for("admin.users"))
+    try:
+        s_ = date.fromisoformat(request.form.get("start_date", ""))
+        e_ = date.fromisoformat(request.form.get("end_date", ""))
+        dq = int(request.form.get("daily_qty", "0"))
+        n = int(request.form.get("count", "1"))
+        ids = campaign_service.issue(g.user["id"], u, media_, s_, e_, dq, n)
+        _log("campaign_issue", "user", u["id"], f"{u['username']} 슬롯 {len(ids)}개 발급 · {s_}~{e_} · 일 {dq}건")
+        flash(f"{u['username']} 계정에 캠페인 슬롯 {len(ids)}개를 발급했습니다.")
+    except ValueError:
+        flash("기간/수량/개수 형식을 확인해주세요.")
+    except campaign_service.CampaignError as e:
+        flash(str(e))
+    return redirect(url_for("admin.users", q=request.args.get("q")))
+
+
 @bp.route("/users/<int:user_id>/status", methods=["POST"])
 @admin_required
 def user_status(user_id):
@@ -512,7 +506,7 @@ def user_status(user_id):
 ACTION_LABEL = {
     "login": "로그인", "user_create": "계정 발급", "user_update": "계정 수정", "user_status": "계정 상태",
     "order_start": "구동 시작", "order_stop": "캠페인 중단", "order_done": "캠페인 완료",
-    "order_rank": "순위 입력", "rank_upload": "순위 업로드", "orders_bulk": "일괄 처리",
+    "order_rank": "순위 입력", "order_terms": "기간·수량 변경", "campaign_issue": "슬롯 발급",
     "media_save": "매체 저장", "media_toggle": "매체 토글", "media_delete": "매체 삭제",
     "content_save": "공지 저장", "content_delete": "공지 삭제", "content_pin": "공지 고정",
     "strip_save": "띠배너 설정",

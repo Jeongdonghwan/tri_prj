@@ -53,9 +53,10 @@ def manage(channel):
     total = campaign_model.count_user(uid, channel, status, period, q)
     for r in rows:
         r["prog"] = campaign_service.progress(r)
-    # 콜백 유실분 자동 보정: 진행 중인데 오늘 순위/상품명 없는 슬롯을 백그라운드로 재동기화(비차단)
-    stale = [r["id"] for r in rows if r["status"] == "running" and r.get("track_id")
-             and (r.get("rank_now") is None or not r.get("product_name"))]
+    # 자동 보정(비차단): 진행 중인데 ①순위/상품명 누락(콜백 유실) 또는 ②추적 자체가 실패(track error)인 슬롯
+    stale = [r["id"] for r in rows if r["status"] == "running"
+             and (r.get("rank_now") is None or not r.get("product_name")
+                  or not r.get("track_id") or r.get("track_status") == "error")]
     if stale:
         _reconcile_async(stale)
     counts = campaign_model.status_counts(uid, channel)
@@ -144,11 +145,22 @@ def _reconcile_async(campaign_ids):
     app = current_app._get_current_object()
 
     def run():
+        import time as _t
         with app.app_context():
             for cid in campaign_ids:
                 try:
                     c = campaign_model.get(cid)
-                    if c:
+                    if not c or c["status"] != "running":
+                        continue
+                    if not c.get("track_id") or c.get("track_status") == "error":
+                        # 추적 등록 자체가 실패한 슬롯 → 자동 재추적 (5분 스로틀)
+                        if _t.time() - _FB_CACHE.get(("track", cid), 0) < 300:
+                            continue
+                        _FB_CACHE[("track", cid)] = _t.time()
+                        if c.get("main_keyword") and c.get("target_url"):
+                            current_app.logger.info("추적 자동 재시도 campaign=%s kw=%s", cid, c["main_keyword"])
+                            campaign_service.start_tracking(c)
+                    else:
                         _fallback_sync(c)
                 except Exception:
                     current_app.logger.exception("재동기화 실패 campaign=%s", cid)

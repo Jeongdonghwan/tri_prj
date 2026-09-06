@@ -27,7 +27,7 @@
   </div>
 
   <div style="overflow-x:auto;margin:0 -18px"><table class="ctable ref">
-    <thead><tr><th style="width:34px"><input type="checkbox" id="chkAll"></th><th>번호</th><th>상태</th><th>순위 키워드</th><th>순위</th><th>상품명</th><th>남은 일수</th><th>시작일</th><th>종료일</th><th>링크</th><th>기능</th></tr></thead>
+    <thead><tr><th style="width:34px"><input type="checkbox" id="chkAll"></th><th>번호</th><th>상태</th><th>순위 키워드</th><th>상품명</th><th>순위</th><th>남은 일수</th><th>시작일</th><th>종료일</th><th>링크</th><th>기능</th></tr></thead>
     <tbody>
     {% for r in rows %}
       <tr data-open="{{ r.id }}"{% if r.id == open_id %} class="sel"{% endif %}>
@@ -35,11 +35,12 @@
         <td class="ord" data-l="번호">{{ r.slot_no }}</td>
         <td data-l="상태"><span class="st {{ status_class[r.status] }}">{{ status_label[r.status] }}</span></td>
         <td data-l="순위 키워드">{% if r.main_keyword %}<b>{{ r.main_keyword }}</b>{% else %}<span class="mut">미등록</span>{% endif %}</td>
-        <td data-l="순위">{% if r.rank_start and r.rank_now %}<span class="rank num">{{ r.rank_start }} → <b>{{ r.rank_now }}</b>{% set d = r.rank_start - r.rank_now %}{% if d > 0 %}<span class="up">▲{{ d }}</span>{% elif d < 0 %}<span class="dn">▼{{ -d }}</span>{% endif %}</span>{% elif r.status == 'running' %}<span class="waiting"><span class="spin"></span>조회 대기중</span>{% else %}<span class="mut">-</span>{% endif %}</td>
         <td class="tname" data-l="상품명">{% if r.product_name %}<b title="{{ r.product_name }}">{{ r.product_name }}</b>{% elif r.status == 'running' %}<span class="mut" style="font-size:12px">조회되면 자동 등록</span>{% else %}<span class="mut">-</span>{% endif %}</td>
+        <td data-l="순위">{% if r.rank_start and r.rank_now %}<span class="rank num">{{ r.rank_start }} → <b>{{ r.rank_now }}</b>{% set d = r.rank_start - r.rank_now %}{% if d > 0 %}<span class="up">▲{{ d }}</span>{% elif d < 0 %}<span class="dn">▼{{ -d }}</span>{% endif %}</span>{% elif r.status == 'running' %}<span class="waiting"><span class="spin"></span>조회 대기중</span>{% else %}<span class="mut">-</span>{% endif %}</td>
         <td class="num" data-l="남은 일수">{% if r.status == 'running' %}{{ r.prog.total - r.prog.elapsed }}일{% elif r.status == 'pending' %}<span class="mut">{{ r.prog.total }}일</span>{% else %}<span class="mut">-</span>{% endif %}</td>
         <td class="num" data-l="시작일"><span class="mut">{{ r.start_date | fmt_date('%Y-%m-%d') }}</span></td>
-        <td class="num" data-l="종료일"><span class="mut">{{ r.end_date | fmt_date('%Y-%m-%d') }}</span></td>
+        {% set left = r.prog.total - r.prog.elapsed %}
+        <td class="num" data-l="종료일">{% if r.status == 'running' and left <= 3 %}<span style="color:var(--danger);font-weight:700">{{ r.end_date | fmt_date('%Y-%m-%d') }}</span>{% else %}<span class="mut">{{ r.end_date | fmt_date('%Y-%m-%d') }}</span>{% endif %}</td>
         <td data-l="링크">{% if r.target_url %}<a class="lnk" href="{{ r.target_url }}" target="_blank" rel="noopener">바로가기</a>{% else %}<span class="mut">-</span>{% endif %}</td>
         <td data-l="기능"><div class="rowact" style="opacity:1">
           {% if r.status == 'pending' %}<button type="button" class="btn pri sm" data-modal="#fill{{ r.id }}">등록</button>

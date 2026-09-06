@@ -25,6 +25,27 @@
     });
   });
 
+  // URL 즉시 검증 (모달 안에서 안내, 잘못되면 제출 막음) — 네이버 쇼핑/스토어 도메인만
+  var URL_OK = /(^|\.)(smartstore|brand|shopping)\.naver\.com/i;
+  document.querySelectorAll('form[action$="/fill"], form[action$="/bulk-fill"]').forEach(function (f) {
+    var input = f.querySelector('input[name="target_url"]');
+    if (!input) return;
+    var hint = document.createElement('div');
+    hint.style.cssText = 'color:var(--danger);font-size:12px;margin-top:4px;display:none';
+    input.parentNode.appendChild(hint);
+    f.addEventListener('submit', function (e) {
+      var v = (input.value || '').trim().replace(/^https?:\/\//i, '');
+      if (!URL_OK.test(v)) {
+        e.preventDefault();
+        hint.textContent = '스마트스토어 · 브랜드스토어 · 쇼핑 주소만 등록할 수 있어요. (예: smartstore.naver.com/…)';
+        hint.style.display = 'block';
+        input.focus();
+        input.style.borderColor = 'var(--danger)';
+      }
+    });
+    input.addEventListener('input', function () { hint.style.display = 'none'; input.style.borderColor = ''; });
+  });
+
   // 등록/수정/일괄 모달 열고 닫기
   document.querySelectorAll('[data-modal]').forEach(function (el) {
     el.addEventListener('click', function (e) {
@@ -54,5 +75,9 @@
   var all = document.getElementById('chkAll');
   if (all) all.addEventListener('change', function () { chks.forEach(function (c) { c.checked = all.checked; }); refreshBulk(); });
 
-  if (window.OPEN_ID) openRanks(window.OPEN_ID);
+  // 등록/수정 후 돌아오면 해당 행만 강조(모달 자동 오픈 안 함)
+  if (window.OPEN_ID) {
+    var row = document.querySelector('tr[data-open="' + window.OPEN_ID + '"]');
+    if (row) { row.classList.add('sel'); row.scrollIntoView({block: 'center', behavior: 'smooth'}); }
+  }
 })();

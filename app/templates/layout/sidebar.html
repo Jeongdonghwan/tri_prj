@@ -35,12 +35,15 @@
     </div>
     {% endfor %}
    </div>
-   <div class="nav-admin">
+   {# 관리자 메뉴: 관리자 계정이면 어느 화면에서든 노출 #}
+   {% if current_user and current_user.role == 'admin' %}
+   <div class="nav-admin show">
     {% for sec in MENU.admin %}
     <div class="nav-sec"><h6>{{ sec.title }}</h6>
       {% for item in sec['items'] %}{{ nav_item(item) }}{% endfor %}
     </div>
     {% endfor %}
    </div>
+   {% endif %}
   </nav>
 </aside>

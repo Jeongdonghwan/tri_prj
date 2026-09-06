@@ -8,22 +8,14 @@
   --radius:18px;--shadow:0 2px 6px rgba(30,20,80,.05),0 10px 28px rgba(30,20,80,.06);
 }
 
-/* ---- 일자형 고정 사이드바 (라운드·축소 없음) ---- */
+/* ---- 일자형 고정 사이드바: 좌측 공간 전체, 항상 펼친 상태 (축소·호버 없음) ---- */
 .app{grid-template-columns:280px 1fr}
 .sidebar{padding:22px 14px 18px;box-shadow:4px 0 24px rgba(16,18,51,.14)}
 body.admin .sidebar{background:#0B1220}
-/* base.css 의 768~1279px 아이콘 축소(호버 확장) 무효화 — 항상 펼친 상태로 고정 */
-@media (min-width:768px) and (max-width:1279px){
-  .app{grid-template-columns:280px 1fr}
-  .sidebar{width:auto;padding:22px 14px 18px;overflow-y:auto}
-  .sidebar .logo{justify-content:flex-start;padding:4px 10px 18px}
-  .sidebar .logo .lsym,.sidebar .logo .ltxt,.sidebar .logo small,.sidebar .nav-sec>h6,.sidebar .nav .lbl{display:inline}
-  .sidebar .nav .ext,.sidebar .nav .chev,.sidebar .nav .tag{display:inline-block}
-  .sidebar .open+.sub{display:block}
-  .sidebar .side-foot{display:flex}
-  .sidebar .point-card.on{display:block}
-  .sidebar .nav a,.sidebar .nav button{justify-content:flex-start;padding:9px 10px}
-}
+/* 관리자 계정은 어느 화면에서든 관리자 메뉴가 보인다 (경로 기반 숨김 무효화) */
+body.admin .nav-user{display:block!important}
+body.admin #pointCard{display:block!important}
+aside.sidebar .nav-admin.show{display:block}
 .logo{color:#fff}
 .logo .ltxt{font-weight:800}
 .nav-sec>h6{color:#5F6386}

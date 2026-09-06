@@ -142,6 +142,26 @@ def total_done_qty(campaign_id):
     return int(query_one("SELECT COALESCE(SUM(done_qty), 0) AS n FROM campaign_daily WHERE campaign_id = %s", [campaign_id])["n"])
 
 
+# ---- 사용자 활동 로그 (본인 슬롯 이력 + 로그인 기록) ------------------------
+def user_logs(user_id, date_from=None, date_to=None, page=1, per_page=30):
+    where, params = [], []
+    if date_from:
+        where.append("t.created_at >= %s"); params.append(f"{date_from} 00:00:00")
+    if date_to:
+        where.append("t.created_at <= %s"); params.append(f"{date_to} 23:59:59")
+    w = ("WHERE " + " AND ".join(where)) if where else ""
+    inner = """
+        SELECT l.created_at, 'campaign' AS kind, c.slot_no, l.to_status, l.memo
+        FROM status_log l JOIN campaigns c ON c.id = l.campaign_id WHERE c.user_id = %s
+        UNION ALL
+        SELECT a.created_at, 'login', NULL, NULL, NULL
+        FROM admin_log a WHERE a.admin_id = %s AND a.action = 'login'"""
+    rows = query(f"SELECT * FROM ({inner}) t {w} ORDER BY t.created_at DESC LIMIT %s OFFSET %s",
+                 [user_id, user_id, *params, per_page, (page - 1) * per_page])
+    total = query_one(f"SELECT COUNT(*) AS n FROM ({inner}) t {w}", [user_id, user_id, *params])["n"]
+    return rows, total
+
+
 # ---- status_log ----------------------------------------------------------
 def add_log(campaign_id, from_status, to_status, actor_id=None, memo=None):
     return execute(

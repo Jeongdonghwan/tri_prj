@@ -1,0 +1,25 @@
+{% extends "layout/base.html" %}
+{% from "macros/pagination.html" import pager %}
+{% block title %}로그 기록{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>로그 기록</h1><p>내 슬롯의 발급·등록·수정·중단 이력과 로그인 기록 (총 {{ total | fmt_num }}건)</p></div></div>
+<div class="card"><div class="cb" style="padding-top:6px">
+  <form class="tbar" method="get" style="gap:8px">
+    <input class="in" type="date" name="date_from" value="{{ date_from or '' }}" style="width:auto" onchange="this.form.submit()">
+    <span class="thin">~</span>
+    <input class="in" type="date" name="date_to" value="{{ date_to or '' }}" style="width:auto" onchange="this.form.submit()">
+    {% if date_from or date_to %}<a class="btn sec sm" href="/logs">초기화</a>{% endif %}
+  </form>
+  <div style="overflow-x:auto;margin:0 -18px"><table><thead><tr><th>일시</th><th>구분</th><th>슬롯</th><th>내용</th></tr></thead><tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="num mut" style="white-space:nowrap">{{ r.created_at | fmt_date('%Y.%m.%d %H:%M:%S') }}</td>
+      <td>{% if r.kind == 'login' %}<span class="tag t-pin">로그인</span>{% else %}<span class="tag">{{ status_label.get(r.to_status, r.to_status) }}</span>{% endif %}</td>
+      <td class="num">{% if r.slot_no %}{{ r.slot_no }}{% else %}-{% endif %}</td>
+      <td>{% if r.kind == 'login' %}로그인{% else %}{{ r.memo or status_label.get(r.to_status, r.to_status) }}{% endif %}</td>
+    </tr>
+    {% else %}<tr><td colspan="4"><div class="empty">기록이 없습니다.</div></td></tr>{% endfor %}
+  </tbody></table></div>
+  {{ pager(page, total_pages, 'my.logs', date_from=date_from, date_to=date_to) }}
+</div></div>
+{% endblock %}

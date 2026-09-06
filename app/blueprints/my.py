@@ -40,6 +40,21 @@ def password():
     return redirect(url_for("my.index"))
 
 
+@bp.route("/logs")
+@login_required
+def logs():
+    """사용자 로그 기록: 본인 슬롯 이력(발급·등록·수정·중단·완료) + 로그인 기록."""
+    from flask import current_app
+    page = max(1, request.args.get("page", 1, type=int))
+    date_from = request.args.get("date_from") or None
+    date_to = request.args.get("date_to") or None
+    per_page = current_app.config["PER_PAGE"]
+    rows, total = campaign_model.user_logs(g.user["id"], date_from, date_to, page, per_page)
+    return render_template("my/logs.html", rows=rows, total=total, page=page,
+                           total_pages=max(1, -(-total // per_page)),
+                           date_from=date_from, date_to=date_to, status_label=STATUS_LABEL)
+
+
 @bp.route("/settings")
 @login_required
 def settings():

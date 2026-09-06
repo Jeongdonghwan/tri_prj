@@ -13,13 +13,13 @@ MENU = {
             "title": "기본",
             "items": [
                 {"label": "공지사항", "icon": "megaphone", "href": "/notice"},
-                {"label": "카카오 바로상담", "icon": "message-circle", "href": Config.KAKAO_CHAT_URL, "external": True},
             ],
         },
         {
             "title": "유입관리",
             "items": [
                 {"label": "캠페인 관리", "icon": "shopping-bag", "href": "/campaign/store"},
+                {"label": "로그 기록", "icon": "scroll-text", "href": "/logs"},
             ],
         },
     ],
@@ -129,7 +129,6 @@ def create_app():
                  "link": sv.get("strip_link") or "", "bg": sv.get("strip_bg") or "#2563EB"}
         return {
             "APP_NAME": app.config["APP_NAME"], "strip": strip,
-            "KAKAO_CHAT_URL": app.config["KAKAO_CHAT_URL"],
             "MENU": MENU,
             "current_user": user,
             "unread_count": notify_service.unread_count(user["id"]) if user else 0,

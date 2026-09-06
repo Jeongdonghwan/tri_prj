@@ -28,7 +28,24 @@
         {% if r.target_url %}<div style="font-size:12px"><a class="lnk" href="{{ r.target_url }}" target="_blank" rel="noopener">{{ r.target_url[:70] }}{% if r.target_url|length > 70 %}…{% endif %}</a></div>{% endif %}
         {% if r.product_name %}<div class="mut" style="font-size:12px">{{ r.product_name }}</div>{% endif %}
       </td>
-      <td class="mut" style="font-size:12px;max-width:260px">{{ r.memo or '-' }}</td>
+      <td style="min-width:300px">
+        {% if kind == '중단' %}
+          <span class="st s-stop">추적 중단</span>
+        {% elif r.changes %}
+          <div class="difflist">
+          {% for ch in r.changes %}
+            <div class="diffrow">
+              <span class="difflbl">{{ ch.label }}</span>
+              {% if ch.old %}<span class="diffold">{{ ch.old[:40] }}{% if ch.old|length > 40 %}…{% endif %}</span><i data-lucide="arrow-right" class="i i14 diffarrow"></i>{% endif %}
+              <span class="diffnew">{{ ch.new[:40] if ch.new else '(없음)' }}{% if ch.new and ch.new|length > 40 %}…{% endif %}</span>
+              {% if not ch.old %}<span class="diffnew-tag">신규</span>{% endif %}
+            </div>
+          {% endfor %}
+          </div>
+        {% else %}
+          <span class="mut" style="font-size:12px">{{ r.memo or '-' }}</span>
+        {% endif %}
+      </td>
       <td>
         {% if r.handled_at %}
           <span class="st s-done" title="{{ r.handled_at | fmt_date('%Y.%m.%d %H:%M') }} 처리">처리됨</span>

@@ -59,6 +59,15 @@ aside.sidebar .nav-admin.show{display:block}
 .waiting .spin{width:13px;height:13px;border:2px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;animation:tw-spin .7s linear infinite;flex:none}
 @keyframes tw-spin{to{transform:rotate(360deg)}}
 
+/* ---- 변경 이력 diff ---- */
+.difflist{display:flex;flex-direction:column;gap:5px}
+.diffrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px}
+.difflbl{flex:none;min-width:52px;font-size:11px;font-weight:700;color:var(--text-3);background:var(--bg);border-radius:5px;padding:2px 6px}
+.diffold{color:var(--text-3);text-decoration:line-through}
+.diffarrow{color:var(--text-3);flex:none}
+.diffnew{font-weight:700;color:var(--text)}
+.diffnew-tag{font-size:10px;font-weight:700;color:var(--success);background:var(--success-soft);border-radius:5px;padding:1px 5px}
+
 /* ---- 발급 모달 기간 프리셋 ---- */
 .daypreset{display:flex;gap:6px;margin-top:8px}
 .daypreset button{flex:1;padding:8px 0;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text-2);font-weight:600;font-size:13px;cursor:pointer}

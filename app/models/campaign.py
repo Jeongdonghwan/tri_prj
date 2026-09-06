@@ -138,10 +138,10 @@ def user_logs(user_id, date_from=None, date_to=None, page=1, per_page=30):
         where.append("t.created_at <= %s"); params.append(f"{date_to} 23:59:59")
     w = ("WHERE " + " AND ".join(where)) if where else ""
     inner = """
-        SELECT l.created_at, 'campaign' AS kind, c.slot_no, l.to_status, l.memo
+        SELECT l.created_at, 'campaign' AS kind, c.slot_no, l.from_status, l.to_status, l.memo
         FROM status_log l JOIN campaigns c ON c.id = l.campaign_id WHERE c.user_id = %s
         UNION ALL
-        SELECT a.created_at, 'login', NULL, NULL, NULL
+        SELECT a.created_at, 'login', NULL, NULL, NULL, NULL
         FROM admin_log a WHERE a.admin_id = %s AND a.action = 'login'"""
     rows = query(f"SELECT * FROM ({inner}) t {w} ORDER BY t.created_at DESC LIMIT %s OFFSET %s",
                  [user_id, user_id, *params, per_page, (page - 1) * per_page])
@@ -150,10 +150,11 @@ def user_logs(user_id, date_from=None, date_to=None, page=1, per_page=30):
 
 
 # ---- status_log ----------------------------------------------------------
-def add_log(campaign_id, from_status, to_status, actor_id=None, memo=None):
+def add_log(campaign_id, from_status, to_status, actor_id=None, memo=None, changes=None):
     return execute(
-        "INSERT INTO status_log (campaign_id, from_status, to_status, actor_id, memo) VALUES (%s,%s,%s,%s,%s)",
-        [campaign_id, from_status, to_status, actor_id, memo])
+        "INSERT INTO status_log (campaign_id, from_status, to_status, actor_id, memo, changes) VALUES (%s,%s,%s,%s,%s,%s)",
+        [campaign_id, from_status, to_status, actor_id, memo,
+         json.dumps(changes, ensure_ascii=False) if changes else None])
 
 
 def list_log(campaign_id):
@@ -173,12 +174,18 @@ def change_feed(only_unhandled=False, date_from=None, date_to=None, page=1, per_
         where.append("l.created_at <= %s"); params.append(f"{date_to} 23:59:59")
     w = " AND ".join(where)
     rows = query(
-        f"""SELECT l.id, l.created_at, l.from_status, l.to_status, l.memo, l.handled_at,
+        f"""SELECT l.id, l.created_at, l.from_status, l.to_status, l.memo, l.changes, l.handled_at,
                    c.id AS campaign_id, c.slot_no, c.main_keyword, c.target_url, c.product_name,
                    u.username, u.nickname
             FROM status_log l JOIN campaigns c ON c.id = l.campaign_id JOIN users u ON u.id = c.user_id
             WHERE {w} ORDER BY l.created_at DESC, l.id DESC LIMIT %s OFFSET %s""",
         params + [per_page, (page - 1) * per_page])
+    for r in rows:
+        if isinstance(r.get("changes"), str):
+            try:
+                r["changes"] = json.loads(r["changes"])
+            except ValueError:
+                r["changes"] = None
     total = query_one(
         f"SELECT COUNT(*) AS n FROM status_log l JOIN campaigns c ON c.id = l.campaign_id WHERE {w}", params)["n"]
     return rows, total

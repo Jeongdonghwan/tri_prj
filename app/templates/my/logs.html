@@ -12,11 +12,17 @@
   </form>
   <div style="overflow-x:auto;margin:0 -18px"><table><thead><tr><th>일시</th><th>구분</th><th>슬롯</th><th>내용</th></tr></thead><tbody>
     {% for r in rows %}
+    {% if r.kind == 'login' %}{% set label = '로그인' %}
+    {% elif r.to_status == 'stopped' %}{% set label = '중단' %}
+    {% elif r.to_status == 'done' %}{% set label = '완료' %}
+    {% elif r.from_status == 'pending' and r.to_status == 'pending' %}{% set label = '슬롯 발급' %}
+    {% elif r.from_status == 'pending' %}{% set label = '등록' %}
+    {% else %}{% set label = '수정' %}{% endif %}
     <tr>
       <td class="num mut" style="white-space:nowrap">{{ r.created_at | fmt_date('%Y.%m.%d %H:%M:%S') }}</td>
-      <td>{% if r.kind == 'login' %}<span class="tag t-pin">로그인</span>{% else %}<span class="tag">{{ status_label.get(r.to_status, r.to_status) }}</span>{% endif %}</td>
+      <td><span class="tag{% if label in ('로그인','슬롯 발급') %} t-pin{% endif %}">{{ label }}</span></td>
       <td class="num">{% if r.slot_no %}{{ r.slot_no }}{% else %}-{% endif %}</td>
-      <td>{% if r.kind == 'login' %}로그인{% else %}{{ r.memo or status_label.get(r.to_status, r.to_status) }}{% endif %}</td>
+      <td>{% if r.kind == 'login' %}로그인{% else %}{{ r.memo or label }}{% endif %}</td>
     </tr>
     {% else %}<tr><td colspan="4"><div class="empty">기록이 없습니다.</div></td></tr>{% endfor %}
   </tbody></table></div>

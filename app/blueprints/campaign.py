@@ -8,9 +8,15 @@ from datetime import date, timedelta
 from flask import (Blueprint, abort, current_app, flash, g, redirect, render_template, request, url_for)
 
 from ..constants import CHANNEL_LABEL, STATUS_CLASS, STATUS_LABEL, STATUS_ORDER
+from ..models import admin_log
 from ..models import campaign as campaign_model
 from ..services import campaign_service, forbidden_service, rank_client, url_service
 from .auth import login_required
+
+
+def _audit(action, campaign, summary):
+    """사용자 캠페인 동작을 로그 기록(admin_log)에도 남긴다 (변경 이력과 별개의 시간순 감사 로그)."""
+    admin_log.log(g.user["id"], action, "campaign", campaign["id"], summary)
 
 bp = Blueprint("campaign", __name__, url_prefix="/campaign")
 
@@ -93,6 +99,9 @@ def fill(channel, campaign_id):
     except campaign_service.CampaignError as e:
         flash(str(e))
         return redirect(url_for("campaign.manage", channel=channel))
+    _audit("campaign_register" if was_pending else "campaign_edit", c,
+           f"슬롯{c['slot_no']} {'등록' if was_pending else '수정'} · {c['main_keyword']}"
+           f" · {c['start_date']}~{c['end_date']}")
     if c.get("track_status") == "collected" and c.get("rank_now"):
         flash(f"{'등록' if was_pending else '수정'}되었습니다. 현재 순위 {c['rank_now']}위 (즉시 조회됨)")
     elif c.get("track_status") == "error":
@@ -166,9 +175,12 @@ def bulk_fill(channel):
         c = campaign_model.get(cid)
         if not c or c["user_id"] != g.user["id"] or c["channel"] != channel:
             continue
+        was_pending = c["status"] == "pending"
         try:
-            campaign_service.fill(c, g.user, data)
+            c2 = campaign_service.fill(c, g.user, data)
             ok += 1
+            _audit("campaign_register" if was_pending else "campaign_edit", c2,
+                   f"슬롯{c2['slot_no']} {'등록' if was_pending else '수정'} · {c2['main_keyword']}")
         except campaign_service.CampaignError as e:
             msgs.append(f"슬롯{c['slot_no']}: {e}")
     flash(f"{ok}개 슬롯에 등록했습니다. 순위는 자동 조회됩니다." + (" · " + "; ".join(msgs[:3]) if msgs else ""))
@@ -181,6 +193,7 @@ def stop(channel, campaign_id):
     c = _own(_channel(channel), campaign_id)
     try:
         c = campaign_service.stop(c, g.user["id"])
+        _audit("campaign_stop", c, f"슬롯{c['slot_no']} 중단 · {c['main_keyword'] or ''}")
         flash("캠페인을 중단했습니다. 순위 추적도 종료됩니다.")
     except campaign_service.CampaignError as e:
         flash(str(e))

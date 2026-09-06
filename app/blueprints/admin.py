@@ -415,7 +415,8 @@ def user_status(user_id):
 ACTION_LABEL = {
     "login": "로그인", "user_create": "계정 발급", "user_update": "계정 수정", "user_status": "계정 상태",
     "order_start": "구동 시작", "order_stop": "캠페인 중단", "order_done": "캠페인 완료",
-    "order_rank": "순위 입력", "order_terms": "기간·수량 변경", "campaign_issue": "슬롯 발급",
+    "order_rank": "순위 입력", "order_terms": "기간 변경", "campaign_issue": "슬롯 발급",
+    "campaign_register": "사용자 등록", "campaign_edit": "사용자 수정", "campaign_stop": "사용자 중단",
     "content_save": "공지 저장", "content_delete": "공지 삭제", "content_pin": "공지 고정",
     "strip_save": "띠배너 설정",
 }

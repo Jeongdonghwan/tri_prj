@@ -40,12 +40,11 @@ def manage(channel):
     if status and status not in STATUS_LABEL:
         status = None
     period = request.args.get("period") or None
-    media_id = request.args.get("media", type=int)
     q = (request.args.get("q") or "").strip()[:60] or None
     page = max(1, request.args.get("page", 1, type=int))
     per_page = current_app.config["PER_PAGE"]
-    rows = campaign_model.list_user(uid, channel, status, period, media_id, q, page, per_page)
-    total = campaign_model.count_user(uid, channel, status, period, media_id, q)
+    rows = campaign_model.list_user(uid, channel, status, period, q, page, per_page)
+    total = campaign_model.count_user(uid, channel, status, period, q)
     for r in rows:
         r["prog"] = campaign_service.progress(r)
     counts = campaign_model.status_counts(uid, channel)
@@ -55,8 +54,7 @@ def manage(channel):
     return render_template(
         "campaign/manage.html", channel=channel, channels=CHANNELS, rows=rows, page=page,
         total_pages=max(1, -(-total // per_page)), counts=counts, total_all=sum(counts.values()),
-        status=status, period=period, media_id=media_id, q=q, stats=stats,
-        media_options=campaign_model.media_used(uid, channel),
+        status=status, period=period, q=q, stats=stats,
         status_order=STATUS_ORDER, status_label=STATUS_LABEL, status_class=STATUS_CLASS,
         open_id=request.args.get("open", type=int),
     )
@@ -66,9 +64,7 @@ def manage(channel):
 def _parse_fill(channel, form):
     """등록/수정 모달 검증. (data, error)"""
     f = {}
-    f["product_name"] = (form.get("product_name") or "").strip()[:120]
-    if not f["product_name"]:
-        return None, "상품명을 입력해주세요."
+    f["product_name"] = (form.get("product_name") or "").strip()[:120] or None
     try:
         f["target_url"] = url_service.normalize(form.get("target_url"), channel)
     except url_service.URLError as e:
@@ -76,7 +72,7 @@ def _parse_fill(channel, form):
     f["main_keyword"] = " ".join((form.get("main_keyword") or "").split())[:60]
     if not f["main_keyword"]:
         return None, "순위 키워드를 입력해주세요."
-    found = forbidden_service.check([f["product_name"], f["main_keyword"]], channel)
+    found = forbidden_service.check([f["product_name"] or "", f["main_keyword"]], channel)
     if found["block"]:
         return None, f"사용할 수 없는 문구가 포함되어 있습니다: {', '.join(found['block'])}"
     f["warn_words"] = ", ".join(found["warn"]) or None
@@ -104,25 +100,6 @@ def fill(channel, campaign_id):
     else:
         flash(f"{'등록' if was_pending else '수정'}되었습니다. 첫 순위는 몇 분 내 자동 조회됩니다.")
     return redirect(url_for("campaign.manage", channel=channel, open=c["id"]))
-
-
-@bp.route("/<channel>/<int:campaign_id>/drawer")
-@login_required
-def drawer(channel, campaign_id):
-    c = _own(_channel(channel), campaign_id)
-    daily = campaign_model.list_daily(c["id"])
-    ranks = [d for d in daily if d["rank"]]
-    best = min((d["rank"] for d in ranks), default=None)
-    worst = max((d["rank"] for d in ranks), default=None)
-    for d in ranks:
-        # 순위가 높을수록(숫자가 작을수록) 막대가 길다
-        d["h"] = 100 if worst == best else int(30 + (worst - d["rank"]) / (worst - best) * 70)
-    return render_template(
-        "campaign/_drawer.html", channel=channel, c=c, daily=daily, ranks=ranks[-14:],
-        done_qty=campaign_model.total_done_qty(c["id"]), logs=campaign_model.list_log(c["id"]),
-        prog=campaign_service.progress(c), day_idx=campaign_service.day_index(c),
-        status_label=STATUS_LABEL, status_class=STATUS_CLASS,
-    )
 
 
 @bp.route("/<channel>/<int:campaign_id>/ranks")
@@ -166,9 +143,36 @@ def _fallback_sync(c):
         d = date.fromisoformat(row["date"])
         if c["start_date"] <= d <= min(date.today(), c["end_date"]) and d not in have:
             try:
-                campaign_service.record_rank(c, d, row["rank"], 0)
+                campaign_service.record_rank(c, d, row["rank"])
             except campaign_service.CampaignError:
                 return
+
+
+@bp.route("/<channel>/bulk-fill", methods=["POST"])
+@login_required
+def bulk_fill(channel):
+    """체크박스로 선택한 슬롯들에 같은 키워드·URL 을 한 번에 등록/수정."""
+    _channel(channel)
+    ids = [int(i) for i in request.form.getlist("ids") if i.isdigit()]
+    if not ids:
+        flash("슬롯을 선택해주세요.")
+        return redirect(url_for("campaign.manage", channel=channel))
+    data, err = _parse_fill(channel, request.form)
+    if err:
+        flash(err)
+        return redirect(url_for("campaign.manage", channel=channel))
+    ok, msgs = 0, []
+    for cid in ids:
+        c = campaign_model.get(cid)
+        if not c or c["user_id"] != g.user["id"] or c["channel"] != channel:
+            continue
+        try:
+            campaign_service.fill(c, g.user, data)
+            ok += 1
+        except campaign_service.CampaignError as e:
+            msgs.append(f"슬롯{c['slot_no']}: {e}")
+    flash(f"{ok}개 슬롯에 등록했습니다. 순위는 자동 조회됩니다." + (" · " + "; ".join(msgs[:3]) if msgs else ""))
+    return redirect(url_for("campaign.manage", channel=channel))
 
 
 @bp.route("/<channel>/<int:campaign_id>/stop", methods=["POST"])

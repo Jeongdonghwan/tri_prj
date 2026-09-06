@@ -5,8 +5,7 @@ from ..db import execute, query, query_one
 
 ACTIVE_STATUSES = ("pending", "running")
 
-SELECT = """SELECT c.*, m.name AS media_name, m.color AS media_color, m.logo_url AS media_logo, m.min_days, m.min_daily, m.max_daily
-            FROM campaigns c JOIN media m ON m.id = c.media_id"""
+SELECT = "SELECT c.* FROM campaigns c"
 
 
 def _decode(row):
@@ -49,7 +48,7 @@ def set_status(campaign_id, status):
 
 
 # ---- lists ---------------------------------------------------------------
-def _filters(user_id, channel, status, period, media_id, q):
+def _filters(user_id, channel, status, period, q):
     where, params = ["c.user_id = %s", "c.channel = %s"], [user_id, channel]
     if status:
         where.append("c.status = %s"); params.append(status)
@@ -57,8 +56,6 @@ def _filters(user_id, channel, status, period, media_id, q):
         where.append("c.created_at >= DATE_FORMAT(CURDATE(), '%%Y-%%m-01')")
     elif period == "last":
         where.append("c.created_at >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%%Y-%%m-01') AND c.created_at < DATE_FORMAT(CURDATE(), '%%Y-%%m-01')")
-    if media_id:
-        where.append("c.media_id = %s"); params.append(media_id)
     if q:
         if q.isdigit():
             where.append("(c.slot_no = %s OR c.main_keyword LIKE %s OR c.product_name LIKE %s)")
@@ -69,15 +66,15 @@ def _filters(user_id, channel, status, period, media_id, q):
     return " AND ".join(where), params
 
 
-def list_user(user_id, channel, status=None, period=None, media_id=None, q=None, page=1, per_page=20):
-    where, params = _filters(user_id, channel, status, period, media_id, q)
+def list_user(user_id, channel, status=None, period=None, q=None, page=1, per_page=20):
+    where, params = _filters(user_id, channel, status, period, q)
     rows = query(f"{SELECT} WHERE {where} ORDER BY c.slot_no ASC, c.id ASC LIMIT %s OFFSET %s",
                  params + [per_page, (page - 1) * per_page])
     return [_decode(r) for r in rows]
 
 
-def count_user(user_id, channel, status=None, period=None, media_id=None, q=None):
-    where, params = _filters(user_id, channel, status, period, media_id, q)
+def count_user(user_id, channel, status=None, period=None, q=None):
+    where, params = _filters(user_id, channel, status, period, q)
     return query_one(f"SELECT COUNT(*) AS n FROM campaigns c WHERE {where}", params)["n"]
 
 
@@ -85,12 +82,6 @@ def status_counts(user_id, channel):
     rows = query("SELECT status, COUNT(*) AS n FROM campaigns WHERE user_id = %s AND channel = %s GROUP BY status",
                  [user_id, channel])
     return {r["status"]: r["n"] for r in rows}
-
-
-def media_used(user_id, channel):
-    return query(
-        """SELECT DISTINCT m.id, m.name FROM campaigns c JOIN media m ON m.id = c.media_id
-           WHERE c.user_id = %s AND c.channel = %s ORDER BY m.name""", [user_id, channel])
 
 
 def list_recent_channel(user_id, channel, limit=5):
@@ -127,19 +118,15 @@ def avg_rank_change(user_id, channel):
 
 
 # ---- campaign_daily ------------------------------------------------------
-def upsert_daily(campaign_id, date, rank, done_qty):
+def upsert_daily(campaign_id, date, rank):
     execute(
-        """INSERT INTO campaign_daily (campaign_id, date, rank, done_qty) VALUES (%s,%s,%s,%s)
-           ON DUPLICATE KEY UPDATE rank = VALUES(rank), done_qty = VALUES(done_qty)""",
-        [campaign_id, date, rank, done_qty])
+        """INSERT INTO campaign_daily (campaign_id, date, rank) VALUES (%s,%s,%s)
+           ON DUPLICATE KEY UPDATE rank = VALUES(rank)""",
+        [campaign_id, date, rank])
 
 
 def list_daily(campaign_id):
     return query("SELECT * FROM campaign_daily WHERE campaign_id = %s ORDER BY date", [campaign_id])
-
-
-def total_done_qty(campaign_id):
-    return int(query_one("SELECT COALESCE(SUM(done_qty), 0) AS n FROM campaign_daily WHERE campaign_id = %s", [campaign_id])["n"])
 
 
 # ---- 사용자 활동 로그 (본인 슬롯 이력 + 로그인 기록) ------------------------
@@ -174,18 +161,16 @@ def list_log(campaign_id):
 
 
 # ---- admin ---------------------------------------------------------------
-ADMIN_SELECT = """SELECT c.*, m.name AS media_name, m.color AS media_color, u.nickname, u.username AS user_username
-                  FROM campaigns c JOIN media m ON m.id = c.media_id JOIN users u ON u.id = c.user_id"""
+ADMIN_SELECT = """SELECT c.*, u.nickname, u.username AS user_username
+                  FROM campaigns c JOIN users u ON u.id = c.user_id"""
 
 
-def _admin_filters(status, channel, media_id, period, q):
+def _admin_filters(status, channel, period, q):
     where, params = ["1=1"], []
     if status:
         where.append("c.status = %s"); params.append(status)
     if channel:
         where.append("c.channel = %s"); params.append(channel)
-    if media_id:
-        where.append("c.media_id = %s"); params.append(media_id)
     if period == "today":
         where.append("c.created_at >= CURDATE()")
     elif period == "week":
@@ -198,19 +183,19 @@ def _admin_filters(status, channel, media_id, period, q):
     return " AND ".join(where), params
 
 
-def admin_list(status=None, channel=None, media_id=None, period=None, q=None, page=1, per_page=20):
-    w, p = _admin_filters(status, channel, media_id, period, q)
+def admin_list(status=None, channel=None, period=None, q=None, page=1, per_page=20):
+    w, p = _admin_filters(status, channel, period, q)
     rows = query(f"{ADMIN_SELECT} WHERE {w} ORDER BY c.created_at DESC, c.id DESC LIMIT %s OFFSET %s", p + [per_page, (page - 1) * per_page])
     return [_decode(r) for r in rows]
 
 
-def admin_all(status=None, channel=None, media_id=None, period=None, q=None, limit=5000):
-    w, p = _admin_filters(status, channel, media_id, period, q)
+def admin_all(status=None, channel=None, period=None, q=None, limit=5000):
+    w, p = _admin_filters(status, channel, period, q)
     return [_decode(r) for r in query(f"{ADMIN_SELECT} WHERE {w} ORDER BY c.created_at DESC LIMIT %s", p + [limit])]
 
 
-def admin_count(status=None, channel=None, media_id=None, period=None, q=None):
-    w, p = _admin_filters(status, channel, media_id, period, q)
+def admin_count(status=None, channel=None, period=None, q=None):
+    w, p = _admin_filters(status, channel, period, q)
     return query_one(f"SELECT COUNT(*) AS n FROM campaigns c JOIN users u ON u.id = c.user_id WHERE {w}", p)["n"]
 
 
@@ -229,14 +214,9 @@ def today_intake():
     return query_one("SELECT COUNT(*) AS n FROM campaigns WHERE created_at >= CURDATE()")
 
 
-def today_intake_by_media(limit=5):
-    return query(
-        """SELECT m.name, COUNT(*) AS n FROM campaigns c JOIN media m ON m.id = c.media_id
-           WHERE c.created_at >= CURDATE() GROUP BY m.id ORDER BY n DESC LIMIT %s""", [limit])
-
-
 def today_rank(campaign_id):
-    return query_one("SELECT rank, done_qty FROM campaign_daily WHERE campaign_id = %s AND date = CURDATE()", [campaign_id])
+    row = query_one("SELECT rank FROM campaign_daily WHERE campaign_id = %s AND date = CURDATE()", [campaign_id])
+    return row["rank"] if row else None
 
 
 def list_by_user(user_id, limit=20):
@@ -245,10 +225,3 @@ def list_by_user(user_id, limit=20):
 
 def set_admin_memo(campaign_id, memo):
     execute("UPDATE campaigns SET admin_memo = %s WHERE id = %s", [memo or None, campaign_id])
-
-
-def done_rank_stats(media_id, days=30):
-    row = query_one(
-        """SELECT COUNT(*) AS n, SUM(rank_start IS NOT NULL AND rank_now IS NOT NULL AND rank_now < rank_start) AS up
-           FROM campaigns WHERE media_id = %s AND status = 'done' AND updated_at >= DATE_SUB(NOW(), INTERVAL %s DAY)""", [media_id, days])
-    return row["n"], int(row["up"] or 0)

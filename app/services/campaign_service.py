@@ -17,41 +17,32 @@ def days_between(start, end):
 
 
 # ---- 발급 (어드민) ---------------------------------------------------------
-def issue(admin_id, user, media, start_date, end_date, daily_qty, count=1):
+def issue(admin_id, user, start_date, end_date, count=1):
     """빈 캠페인(등록 대기) count 개 발급. 슬롯번호는 계정마다 1부터 순차 부여."""
     if end_date < start_date:
         raise CampaignError("종료일이 시작일보다 빠릅니다.")
     if not (1 <= count <= 50):
         raise CampaignError("발급 개수는 1~50개입니다.")
-    if daily_qty < 1:
-        raise CampaignError("일 작업량을 입력해주세요.")
-    days = days_between(start_date, end_date)
     base = campaign_model.max_slot_no(user["id"])
     ids = []
     for i in range(count):
         cid = campaign_model.insert({
-            "slot_no": base + 1 + i, "user_id": user["id"], "channel": media["channel"], "media_id": media["id"],
+            "slot_no": base + 1 + i, "user_id": user["id"], "channel": "store",
             "status": "pending", "start_date": start_date, "end_date": end_date,
-            "daily_qty": daily_qty, "total_qty": daily_qty * days,
         })
-        campaign_model.add_log(cid, "pending", "pending", admin_id, f"슬롯 발급 · {start_date}~{end_date} · 일 {daily_qty}건")
+        campaign_model.add_log(cid, "pending", "pending", admin_id, f"슬롯 발급 · {start_date}~{end_date}")
         ids.append(cid)
     _notify(user["id"], f"캠페인 슬롯 {count}개가 발급되었습니다. 키워드·상품을 등록해주세요.", "/campaign/store?status=pending")
     return ids
 
 
-def update_terms(campaign, admin_id, start_date, end_date, daily_qty):
-    """어드민 기간·수량 수정."""
+def update_terms(campaign, admin_id, start_date, end_date):
+    """어드민 기간 수정."""
     if end_date < start_date:
         raise CampaignError("종료일이 시작일보다 빠릅니다.")
-    if daily_qty < 1:
-        raise CampaignError("일 작업량을 입력해주세요.")
-    campaign_model.update(campaign["id"], {
-        "start_date": start_date, "end_date": end_date,
-        "daily_qty": daily_qty, "total_qty": daily_qty * days_between(start_date, end_date),
-    })
+    campaign_model.update(campaign["id"], {"start_date": start_date, "end_date": end_date})
     campaign_model.add_log(campaign["id"], campaign["status"], campaign["status"], admin_id,
-                           f"기간·수량 변경 · {start_date}~{end_date} · 일 {daily_qty}건")
+                           f"기간 변경 · {start_date}~{end_date}")
     return campaign_model.get(campaign["id"])
 
 
@@ -67,7 +58,7 @@ def fill(campaign, user, data):
     changed_track = (campaign.get("main_keyword") != data["main_keyword"]
                      or campaign.get("target_url") != data["target_url"])
     campaign_model.update(campaign["id"], {
-        "product_name": data["product_name"],
+        "product_name": data.get("product_name"),
         "target_url": data["target_url"], "main_keyword": data["main_keyword"],
         "setting_keywords": [data["main_keyword"]],
         "warn_words": data.get("warn_words"),
@@ -96,7 +87,7 @@ def start_tracking(campaign):
         if r.get("prodNm") and not campaign.get("product_name"):
             campaign_model.update(campaign["id"], {"product_name": r["prodNm"][:120]})
         if r.get("status") == "collected":       # 캐시 히트 — 오늘 순위 즉시 반영
-            record_rank(campaign_model.get(campaign["id"]), date.today(), r.get("rank"), 0)
+            record_rank(campaign_model.get(campaign["id"]), date.today(), r.get("rank"))
     else:
         campaign_model.update(campaign["id"], {"track_status": "error"})
 
@@ -151,10 +142,10 @@ def _maybe_untrack(campaign):
         rank_client.untrack(campaign["track_id"])
 
 
-def record_rank(campaign, day, rank, done_qty, actor_id=None):
+def record_rank(campaign, day, rank, actor_id=None):
     if campaign["status"] not in ("running", "done"):
         raise CampaignError("진행 중인 캠페인만 순위를 입력할 수 있습니다.")
-    campaign_model.upsert_daily(campaign["id"], day, rank, done_qty)
+    campaign_model.upsert_daily(campaign["id"], day, rank)
     fields = {"rank_now": rank}
     if campaign["rank_start"] is None:
         fields["rank_start"] = rank

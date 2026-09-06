@@ -31,8 +31,7 @@ def rank_callback():
     saved = 0
     for c in rows:
         try:
-            done_qty = c["daily_qty"] if c["start_date"] <= day <= c["end_date"] else 0
-            campaign_service.record_rank(c, day, rank, done_qty)
+            campaign_service.record_rank(c, day, rank)
             if body.get("prodNm") and not c.get("product_name"):
                 campaign_model.update(c["id"], {"product_name": body["prodNm"][:120]})
             saved += 1

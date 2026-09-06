@@ -2,10 +2,10 @@
 {% from "macros/pagination.html" import pager %}
 {% block title %}캠페인 관리{% endblock %}
 {% block content %}
-<div class="ph"><div><h1>캠페인 관리</h1><p>관리자가 발급한 슬롯에 키워드·상품을 등록하면 순위 추적이 바로 시작됩니다.</p></div></div>
+<div class="ph"><div><h1>캠페인 관리</h1><p>슬롯에 키워드·상품 URL을 등록하면 순위 추적이 바로 시작됩니다. 행을 클릭하면 순위 추적 화면이 열립니다.</p></div></div>
 
 <div class="mstat">
-  <div class="card"><span class="k">등록 대기</span><span class="v num{% if stats.pending %} alert{% endif %}">{{ stats.pending }}<i>개</i></span><span class="d">키워드·상품을 등록해주세요</span></div>
+  <div class="card"><span class="k">등록 대기</span><span class="v num{% if stats.pending %} alert{% endif %}">{{ stats.pending }}<i>개</i></span><span class="d">키워드·URL을 등록해주세요</span></div>
   <div class="card"><span class="k">진행 중</span><span class="v num">{{ stats.running }}<i>건</i></span><span class="d">순위 자동 추적 중</span></div>
   <div class="card"><span class="k">평균 순위 변동</span><span class="v num"{% if stats.avg_up and stats.avg_up > 0 %} style="color:var(--success)"{% endif %}>{% if stats.avg_up is not none %}{{ '+' if stats.avg_up >= 0 }}{{ '%.1f' % stats.avg_up }}<i>위</i>{% else %}—{% endif %}</span><span class="d">완료 {{ stats.done_n }}건 기준</span></div>
 </div>
@@ -19,25 +19,32 @@
     {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
     <div class="search"><i data-lucide="search" class="i"></i><input class="in" name="q" value="{{ q or '' }}" placeholder="슬롯번호 · 키워드 · 상품명"></div>
   </form>
+
+  {# 체크박스 일괄 등록 바 #}
+  <div class="bulk" id="bulkBar" style="display:none;align-items:center;gap:10px;padding:10px 0">
+    <span id="bulkCount">0</span>개 선택됨
+    <button class="btn pri sm" type="button" data-modal="#bulkFill" style="margin-left:auto">선택 슬롯 일괄 등록</button>
+  </div>
+
   <div style="overflow-x:auto;margin:0 -18px"><table class="ctable ref">
-    <thead><tr><th>번호</th><th>상태</th><th>순위 키워드</th><th>순위</th><th>상품명</th><th>일 수량</th><th>남은 일수</th><th>시작일</th><th>종료일</th><th>링크</th><th>기능</th></tr></thead>
+    <thead><tr><th style="width:34px"><input type="checkbox" id="chkAll"></th><th>번호</th><th>상태</th><th>순위 키워드</th><th>순위</th><th>상품명</th><th>남은 일수</th><th>시작일</th><th>종료일</th><th>링크</th><th>기능</th></tr></thead>
     <tbody>
     {% for r in rows %}
       <tr data-open="{{ r.id }}"{% if r.id == open_id %} class="sel"{% endif %}>
+        <td>{% if r.status in ('pending', 'running') %}<input type="checkbox" class="rowchk" value="{{ r.id }}">{% endif %}</td>
         <td class="ord" data-l="번호">{{ r.slot_no }}</td>
         <td data-l="상태"><span class="st {{ status_class[r.status] }}">{{ status_label[r.status] }}</span></td>
         <td data-l="순위 키워드">{% if r.main_keyword %}<b>{{ r.main_keyword }}</b>{% else %}<span class="mut">미등록</span>{% endif %}</td>
-        <td data-l="순위">{% if r.rank_start and r.rank_now %}<span class="rank num">{{ r.rank_start }} → <b>{{ r.rank_now }}</b>{% set d = r.rank_start - r.rank_now %}{% if d > 0 %}<span class="up">▲{{ d }}</span>{% elif d < 0 %}<span class="dn">▼{{ -d }}</span>{% endif %}</span>{% else %}<span class="mut">-</span>{% endif %}</td>
-        <td class="tname" data-l="상품명">{% if r.product_name %}<b title="{{ r.product_name }}">{{ r.product_name }}</b>{% else %}<span class="mut">-</span>{% endif %}</td>
-        <td class="num" data-l="일 수량">{{ r.daily_qty }}</td>
+        <td data-l="순위">{% if r.rank_start and r.rank_now %}<span class="rank num">{{ r.rank_start }} → <b>{{ r.rank_now }}</b>{% set d = r.rank_start - r.rank_now %}{% if d > 0 %}<span class="up">▲{{ d }}</span>{% elif d < 0 %}<span class="dn">▼{{ -d }}</span>{% endif %}</span>{% elif r.status == 'running' %}<span class="mut" style="font-size:12px"><i data-lucide="loader" class="i i14"></i> 조회 대기중</span>{% else %}<span class="mut">-</span>{% endif %}</td>
+        <td class="tname" data-l="상품명">{% if r.product_name %}<b title="{{ r.product_name }}">{{ r.product_name }}</b>{% elif r.status == 'running' %}<span class="mut" style="font-size:12px">조회되면 자동 등록</span>{% else %}<span class="mut">-</span>{% endif %}</td>
         <td class="num" data-l="남은 일수">{% if r.status == 'running' %}{{ r.prog.total - r.prog.elapsed }}일{% elif r.status == 'pending' %}<span class="mut">{{ r.prog.total }}일</span>{% else %}<span class="mut">-</span>{% endif %}</td>
         <td class="num" data-l="시작일"><span class="mut">{{ r.start_date | fmt_date('%Y-%m-%d') }}</span></td>
         <td class="num" data-l="종료일"><span class="mut">{{ r.end_date | fmt_date('%Y-%m-%d') }}</span></td>
         <td data-l="링크">{% if r.target_url %}<a class="lnk" href="{{ r.target_url }}" target="_blank" rel="noopener">바로가기</a>{% else %}<span class="mut">-</span>{% endif %}</td>
         <td data-l="기능"><div class="rowact" style="opacity:1">
           {% if r.status == 'pending' %}<button type="button" class="btn pri sm" data-modal="#fill{{ r.id }}">등록</button>
-          {% elif r.status == 'running' %}<button type="button" data-ranks="{{ r.id }}">순위표</button><button type="button" data-modal="#fill{{ r.id }}">수정</button><form method="post" action="/campaign/{{ channel }}/{{ r.id }}/stop" onsubmit="return confirm('캠페인을 중단할까요? 순위 추적도 함께 종료됩니다.')"><button type="submit">중단</button></form>
-          {% else %}<button type="button" data-ranks="{{ r.id }}">순위표</button>{% endif %}
+          {% elif r.status == 'running' %}<button type="button" data-modal="#fill{{ r.id }}">수정</button><form method="post" action="/campaign/{{ channel }}/{{ r.id }}/stop" onsubmit="return confirm('캠페인을 중단할까요? 순위 추적도 함께 종료됩니다.')"><button type="submit">중단</button></form>
+          {% endif %}
         </div></td>
       </tr>
     {% else %}
@@ -47,24 +54,36 @@
   {{ pager(page, total_pages, 'campaign.manage', channel=channel, status=status, q=q) }}
 </div></div>
 
+{# 일괄 등록 모달: 선택한 슬롯 전부에 같은 키워드·URL 적용 #}
+<div class="modal" id="bulkFill">
+  <form class="modal-box" method="post" action="/campaign/{{ channel }}/bulk-fill" id="bulkFillForm">
+    <h3>선택 슬롯 일괄 등록 <span class="thin" id="bulkFillCount"></span></h3>
+    <p class="thin" style="margin:4px 0 12px">선택한 슬롯 전부에 같은 키워드·URL이 등록되고 순위 추적이 시작됩니다.</p>
+    <div class="f"><label>순위 키워드 *</label><input class="in" name="main_keyword" required placeholder="예) 아우라 방향제"></div>
+    <div class="f"><label>상품 URL *</label><input class="in" name="target_url" required placeholder="https://smartstore.naver.com/..."></div>
+    <div class="f"><label>상품명 <small>선택 — 비우면 순위 조회 시 자동 등록</small></label><input class="in" name="product_name"></div>
+    <div style="display:flex;gap:8px"><button class="btn sec" type="button" data-close style="flex:1">취소</button><button class="btn pri" type="submit" style="flex:1">일괄 등록</button></div>
+  </form>
+</div>
+
 {# 등록/수정 모달 (행마다) #}
 {% for r in rows %}{% if r.status in ('pending', 'running') %}
 <div class="modal" id="fill{{ r.id }}">
   <form class="modal-box" method="post" action="/campaign/{{ channel }}/{{ r.id }}/fill">
-    <h3>슬롯 {{ r.slot_no }} {{ '등록' if r.status == 'pending' else '수정' }} <span class="thin">{{ r.start_date | fmt_date }}~{{ r.end_date | fmt_date }} · 일 {{ r.daily_qty }}건</span></h3>
-    <div class="f" style="margin-top:12px"><label>상품명 *</label><input class="in" name="product_name" value="{{ r.product_name or '' }}" placeholder="예) 아우라 방향제 200ml" required></div>
-    <div class="f"><label>순위 키워드 *</label><input class="in" name="main_keyword" value="{{ r.main_keyword or '' }}" placeholder="예) 아우라 방향제" required></div>
+    <h3>슬롯 {{ r.slot_no }} {{ '등록' if r.status == 'pending' else '수정' }} <span class="thin">{{ r.start_date | fmt_date }}~{{ r.end_date | fmt_date }}</span></h3>
+    <div class="f" style="margin-top:12px"><label>순위 키워드 *</label><input class="in" name="main_keyword" value="{{ r.main_keyword or '' }}" placeholder="예) 아우라 방향제" required></div>
     <div class="f"><label>상품 URL *</label><input class="in" name="target_url" value="{{ r.target_url or '' }}" placeholder="https://smartstore.naver.com/..." required><div class="hint">옵션 상품은 옵션 미선택 URL로 등록해주세요.</div></div>
+    <div class="f"><label>상품명 <small>선택 — 비우면 순위 조회 시 자동 등록</small></label><input class="in" name="product_name" value="{{ r.product_name or '' }}"></div>
     {% if r.status == 'running' %}<p class="thin" style="margin-bottom:10px">키워드나 URL을 바꾸면 순위 추적이 새로 시작됩니다.</p>{% endif %}
     <div style="display:flex;gap:8px"><button class="btn sec" type="button" data-close style="flex:1">취소</button><button class="btn pri" type="submit" style="flex:1">{{ '등록하고 추적 시작' if r.status == 'pending' else '수정 저장' }}</button></div>
   </form>
 </div>
 {% endif %}{% endfor %}
 
+{# 행 클릭 → 순위 추적 화면 #}
 <div class="modal" id="rankModal"><div class="modal-box" style="max-width:840px;max-height:88vh;overflow-y:auto;padding:18px 20px" id="rankBody"></div></div>
-<div class="drawer" id="drawer"><div class="dh"><h3>불러오는 중…</h3><button class="icon-btn x" id="dclose" type="button"><i data-lucide="x" class="i"></i></button></div><div class="db" id="drawerBody"></div></div>
 {% endblock %}
 {% block scripts %}
-<script>window.DRAWER_BASE = "/campaign/{{ channel }}/"; window.OPEN_ID = {{ open_id or 'null' }};</script>
+<script>window.RANKS_BASE = "/campaign/{{ channel }}/"; window.OPEN_ID = {{ open_id or 'null' }};</script>
 <script src="{{ url_for('static', filename='js/campaign_manage.js') }}"></script>
 {% endblock %}

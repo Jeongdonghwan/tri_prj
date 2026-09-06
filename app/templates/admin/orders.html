@@ -2,35 +2,33 @@
 {% from "macros/pagination.html" import pager %}
 {% block title %}주문 관리{% endblock %}
 {% block content %}
-<div class="ph"><div><h1>주문 관리</h1><p>슬롯 발급은 계정 관리에서, 기간·수량 변경과 순위 보정은 여기서 합니다.</p></div>
+<div class="ph"><div><h1>주문 관리</h1><p>슬롯 발급은 계정 관리에서, 기간 변경과 순위 보정은 여기서 합니다.</p></div>
   <div class="act"><a class="btn sec" href="/admin/orders/export?{{ request.query_string.decode() }}">엑셀 내보내기</a></div></div>
 <div class="card"><div class="cb" style="padding-top:6px">
   <div class="tabs"><a href="/admin/orders"><button type="button"{% if not status %} class="on"{% endif %}>전체<em>{{ total_all }}</em></button></a>
     {% for s in status_order %}<a href="/admin/orders?status={{ s }}"><button type="button"{% if status == s %} class="on"{% endif %}>{{ status_label[s] }}<em>{{ counts.get(s, 0) }}</em></button></a>{% endfor %}</div>
   <form class="tbar" method="get">{% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
-    <select class="in" name="media" onchange="this.form.submit()"><option value="">모든 매체</option>{% for m in medias %}<option value="{{ m.id }}"{% if media_id == m.id %} selected{% endif %}>{{ m.name }}</option>{% endfor %}</select>
     <select class="in" name="period" onchange="this.form.submit()"><option value="">전체 기간</option><option value="today"{% if period == 'today' %} selected{% endif %}>오늘 발급</option><option value="week"{% if period == 'week' %} selected{% endif %}>이번 주</option><option value="month"{% if period == 'month' %} selected{% endif %}>이번 달</option></select>
     <div class="search"><i data-lucide="search" class="i"></i><input class="in" name="q" value="{{ q or '' }}" placeholder="아이디 · 키워드 · 상품명"></div></form>
-  <div style="overflow-x:auto;margin:0 -18px"><table><thead><tr><th>아이디</th><th>번호</th><th>상태</th><th>키워드 · 상품</th><th>매체</th><th>기간 · 수량</th><th>링크</th><th>순위</th><th></th></tr></thead><tbody>
+  <div style="overflow-x:auto;margin:0 -18px"><table><thead><tr><th>아이디</th><th>번호</th><th>상태</th><th>키워드 · 상품</th><th>기간</th><th>링크</th><th>순위</th><th></th></tr></thead><tbody>
     {% for r in rows %}
     <tr{% if r.warn.block %} style="background:var(--danger-soft)"{% endif %}>
       <td><b>{{ r.user_username }}</b><br><span class="mut" style="font-size:11px">{{ r.nickname }}</span></td>
       <td class="ord">{{ r.slot_no }}</td>
       <td><span class="st {{ status_class[r.status] }}">{{ status_label[r.status] }}</span></td>
       <td>{% if r.main_keyword %}<b>{{ r.main_keyword }}</b>{% if r.warn.block %}<br><span style="color:var(--danger);font-size:12px">⚠ 금지 문구 "{{ r.warn.block | join(', ') }}"</span>{% elif r.warn.warn %}<br><span style="color:var(--warn);font-size:12px">주의 "{{ r.warn.warn | join(', ') }}"</span>{% endif %}<br><span class="mut">{{ r.product_name or '' }}</span>{% else %}<span class="mut">미등록</span>{% endif %}</td>
-      <td>{{ r.media_name }}</td>
-      <td class="num">{{ r.start_date | fmt_date }}~{{ r.end_date | fmt_date }}<br><span class="mut">{{ r.daily_qty }}/일{% if r.status == 'running' %} · {{ r.day_idx }}일차{% endif %}</span></td>
+      <td class="num">{{ r.start_date | fmt_date }}~{{ r.end_date | fmt_date }}{% if r.status == 'running' %}<br><span class="mut">{{ r.day_idx }}일차</span>{% endif %}</td>
       <td>{% if r.target_url %}<a class="lnk" href="{{ r.target_url }}" target="_blank" rel="noopener">확인</a>{% else %}<span class="mut">-</span>{% endif %}</td>
-      <td>{% if r.status == 'running' %}<form method="post" action="/admin/orders/{{ r.id }}/rank" style="display:flex;gap:4px;align-items:center"><input type="hidden" name="back" value="{{ request.full_path }}"><span class="num mut">{{ r.rank_start or '-' }} →</span><input class="rank-in" name="rank" value="{{ r.today.rank if r.today else (r.rank_now or '') }}" placeholder="오늘"><input class="rank-in" name="done_qty" value="{{ r.today.done_qty if r.today else r.daily_qty }}" title="오늘 작업량" style="width:56px"><button class="btn sec sm" type="submit">저장</button></form>{% elif r.rank_start %}<span class="rank num">{{ r.rank_start }} → <b>{{ r.rank_now }}</b></span>{% else %}<span class="mut">-</span>{% endif %}</td>
+      <td>{% if r.status == 'running' %}<form method="post" action="/admin/orders/{{ r.id }}/rank" style="display:flex;gap:4px;align-items:center"><input type="hidden" name="back" value="{{ request.full_path }}"><span class="num mut">{{ r.rank_start or '-' }} →</span><input class="rank-in" name="rank" value="{{ r.today if r.today is not none else (r.rank_now or '') }}" placeholder="오늘"><button class="btn sec sm" type="submit">저장</button></form>{% elif r.rank_start %}<span class="rank num">{{ r.rank_start }} → <b>{{ r.rank_now }}</b></span>{% else %}<span class="mut">-</span>{% endif %}</td>
       <td><div class="rowact" style="opacity:1">
-        <button type="button" data-modal="#terms{{ r.id }}">기간·수량</button>
+        <button type="button" data-modal="#terms{{ r.id }}">기간</button>
         {% if r.status == 'running' %}<button type="button" data-act="done" data-id="{{ r.id }}">완료</button><button type="button" style="color:var(--warn)" data-act="stop" data-id="{{ r.id }}" data-confirm="캠페인을 중단할까요? 순위 추적도 함께 종료됩니다.">중단</button>{% endif %}
         <button type="button" data-memo="{{ r.id }}" data-order="슬롯{{ r.slot_no }}" data-text="{{ r.admin_memo or '' }}">메모</button>
       </div></td>
     </tr>
-    {% else %}<tr><td colspan="9"><div class="empty">조건에 맞는 슬롯이 없습니다.</div></td></tr>{% endfor %}
+    {% else %}<tr><td colspan="8"><div class="empty">조건에 맞는 슬롯이 없습니다.</div></td></tr>{% endfor %}
   </tbody></table></div>
-  {{ pager(page, total_pages, 'admin.orders', status=status, media=media_id, period=period, q=q) }}
+  {{ pager(page, total_pages, 'admin.orders', status=status, period=period, q=q) }}
 </div></div>
 
 {# 기간·수량 수정 모달 (행마다) #}
@@ -38,16 +36,15 @@
 <div class="modal" id="terms{{ r.id }}">
   <form class="modal-box" method="post" action="/admin/orders/{{ r.id }}/terms">
     <input type="hidden" name="back" value="{{ request.full_path }}">
-    <h3>{{ r.user_username }} · 슬롯 {{ r.slot_no }} 기간·수량</h3>
+    <h3>{{ r.user_username }} · 슬롯 {{ r.slot_no }} 기간</h3>
     <div class="f" style="margin-top:12px"><label>기간</label><div class="row2"><input class="in" type="date" name="start_date" value="{{ r.start_date }}" required><input class="in" type="date" name="end_date" value="{{ r.end_date }}" required></div></div>
-    <div class="f"><label>일 작업량</label><input class="in" type="number" name="daily_qty" value="{{ r.daily_qty }}" min="1" required></div>
     <div style="display:flex;gap:8px"><button class="btn sec" type="button" data-close style="flex:1">취소</button><button class="btn pri" type="submit" style="flex:1">저장</button></div>
   </form>
 </div>
 {% endfor %}
 
 <div class="modal" id="memoModal"><form class="modal-box" method="post" id="memoForm" action=""><input type="hidden" name="action" value="memo"><input type="hidden" name="back" value="{{ request.full_path }}">
-  <h3>운영팀 메모 <span class="thin" id="memoOrder"></span></h3><p class="thin" style="margin:4px 0 12px">회원의 캠페인 상세 드로어에 표시됩니다.</p>
+  <h3>운영팀 메모 <span class="thin" id="memoOrder"></span></h3><p class="thin" style="margin:4px 0 12px">운영팀 내부 메모입니다.</p>
   <div class="f"><textarea class="in" name="memo" id="memoText" rows="4"></textarea></div>
   <div style="display:flex;gap:8px"><button class="btn sec" type="button" data-close style="flex:1">취소</button><button class="btn pri" type="submit" style="flex:1">저장</button></div></form></div>
 <form method="post" id="actForm" action="" style="display:none"><input type="hidden" name="action" id="actName"><input type="hidden" name="back" value="{{ request.full_path }}"></form>

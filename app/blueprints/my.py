@@ -30,8 +30,8 @@ def password():
     f = request.form
     if not check_password_hash(g.user["password_hash"], f.get("current") or ""):
         flash("현재 비밀번호가 올바르지 않습니다.")
-    elif len(f.get("password") or "") < 8:
-        flash("새 비밀번호는 8자 이상이어야 합니다.")
+    elif len(f.get("password") or "") < 4:
+        flash("새 비밀번호는 4자 이상이어야 합니다.")
     elif f.get("password") != f.get("password2"):
         flash("새 비밀번호 확인이 일치하지 않습니다.")
     else:

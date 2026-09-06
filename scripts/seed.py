@@ -47,14 +47,6 @@ def para(*ps):
     return "".join(f"<p>{p}</p>" for p in ps)
 
 
-MEDIA = [
-    ("스토어A", "리워드", "#7C3AED", 160, "rec", 80),
-    ("스토어B", "리워드", "#0891B2", 155, "best", 76),
-    ("스토어C", "유입", "#2563EB", 110, None, 70),
-    ("스토어D", "유입", "#F59E0B", 115, "new", 64),
-    ("스토어E", "복합", "#F97316", 90, None, 59),
-]
-
 FORBIDDEN = [
     ("최저가", None, "block"), ("1위", None, "warn"), ("업계 최고", None, "warn"), ("100% 보장", None, "block"),
     ("무조건", None, "warn"), ("전국 1등", None, "warn"), ("정품 보장", "store", "warn"),
@@ -74,7 +66,7 @@ def seed():
     now = datetime.now()
 
     cur.execute("SET FOREIGN_KEY_CHECKS=0")
-    for t in ("contents", "media", "forbidden_words", "admin_log", "campaign_daily", "status_log",
+    for t in ("contents", "forbidden_words", "admin_log", "campaign_daily", "status_log",
               "campaigns", "settings", "notifications", "users"):
         cur.execute(f"TRUNCATE TABLE {t}")
 
@@ -85,14 +77,6 @@ def seed():
          ("demo", generate_password_hash("demo1234!"), "데모계정", "user", "데모상사")],
     )
     admin_id = 1
-
-    # 매체
-    cur.executemany(
-        """INSERT INTO media (channel, group_name, name, color, unit_price, min_days, min_daily, max_daily,
-           efficiency_auto, badge, eff_level, sort)
-           VALUES ('store',%s,%s,%s,%s,3,50,500,%s,%s,%s,%s)""",
-        [(grp, name, color, price, eff, badge, "best" if eff >= 75 else "good", i)
-         for i, (name, grp, color, price, badge, eff) in enumerate(MEDIA)])
 
     # 공지
     cur.executemany(
@@ -108,7 +92,7 @@ def seed():
 
     cur.execute("SET FOREIGN_KEY_CHECKS=1")
     conn.close()
-    print(f"seed done: users 2 (admin/demo), media {len(MEDIA)}, notices {len(NOTICES)}, forbidden {len(FORBIDDEN)}")
+    print(f"seed done: users 2 (admin/demo), notices {len(NOTICES)}, forbidden {len(FORBIDDEN)}")
 
 
 if __name__ == "__main__":

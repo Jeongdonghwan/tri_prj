@@ -27,13 +27,13 @@ bbe_prj 에서 **공지사항 + 쇼핑캠페인 관리**만 발췌해 만든 내
 - 폴백: 순위표(ranks) 열람 시 오늘 순위 없고 5분 경과면 fetch_ranks 로 보정
 
 ## 캠페인 = 발급형 슬롯 (Malon 방식)
-- 어드민이 계정 관리(/admin/users)에서 슬롯을 발급한다 — 매체·기간·일 수량·개수는 어드민 소관.
+- 어드민이 계정 관리(/admin/users)에서 슬롯을 발급한다 — 기간·개수만 정한다 (매체·일수량 개념 없음).
 - 슬롯번호(slot_no)는 계정마다 1부터. 주문번호 없음. 결제·금액 개념 전부 없음.
-- 사용자는 캠페인 관리 목록의 모달로 키워드·상품·URL 만 등록/수정 → 등록 순간 running + 순위 추적 시작.
+- 사용자는 캠페인 관리 목록의 모달로 키워드·URL 등록/수정 (상품명 선택 — 비우면 순위 조회 시 자동 등록) → 등록 순간 running + 추적 시작. 체크박스로 여러 슬롯 일괄 등록 가능(bulk-fill). 행 클릭 = 순위 추적 모달(드로어 없음). 순위 없으면 "조회 대기중" 표시.
 - 진행 중 키워드·URL 변경 시 추적을 갈아탄다 (campaign_service.fill).
 - **동일 키워드 여러 슬롯 가능**: 같은 키워드+URL이면 rankserver 슬롯을 공유(캐시 히트 시 즉시 순위), 같은 키워드+다른 URL이면 별도 추적(오늘 SERP에 있으면 캐시, 없으면 긴급 수집).
 - 상태: `pending → running → done | stopped`. 변경은 campaign_service.transition()/stop() 외 경로 금지.
-- 기간·수량 변경은 어드민 주문 관리(/admin/orders)의 기간·수량 모달 (campaign_service.update_terms).
+- 기간 변경은 어드민 주문 관리(/admin/orders)의 기간 모달 (campaign_service.update_terms). 비밀번호는 4자 이상.
 
 ## 규칙
 - 관리자 쓰기 + 로그인은 admin_log 에 기록 (`_log()` / auth.\_login)

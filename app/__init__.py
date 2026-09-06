@@ -34,7 +34,6 @@ MENU = {
         {
             "title": "설정",
             "items": [
-                {"label": "매체사 관리", "icon": "package", "href": "/admin/media"},
                 {"label": "공지사항", "icon": "pen-line", "href": "/admin/content"},
                 {"label": "계정 관리", "icon": "users", "href": "/admin/users"},
                 {"label": "로그 기록", "icon": "scroll-text", "href": "/admin/logs"},

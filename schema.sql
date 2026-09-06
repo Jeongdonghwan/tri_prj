@@ -21,33 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
--- ---------------------------------------------------------------- media / campaigns
-CREATE TABLE IF NOT EXISTS media (
-  id                INT AUTO_INCREMENT PRIMARY KEY,
-  channel           ENUM('store') NOT NULL DEFAULT 'store',
-  group_name        VARCHAR(40) NOT NULL DEFAULT '',
-  name              VARCHAR(40) NOT NULL,
-  tagline           VARCHAR(80) NULL,
-  logo_url          VARCHAR(255) NULL,
-  color             CHAR(7) NOT NULL DEFAULT '#4B5563',
-  unit_price        INT NOT NULL,
-  list_price        INT NULL,
-  min_days          INT NOT NULL DEFAULT 3,
-  min_daily         INT NOT NULL DEFAULT 50,
-  max_daily         INT NOT NULL DEFAULT 500,
-  efficiency_auto   TINYINT NOT NULL DEFAULT 0,
-  efficiency_manual TINYINT NULL,
-  cutoff_time       TIME NOT NULL DEFAULT '13:30:00',
-  same_day          TINYINT(1) NOT NULL DEFAULT 1,
-  description       TEXT NULL,
-  badge             ENUM('rec','best','new') NULL,
-  eff_level         ENUM('normal','good','best') NOT NULL DEFAULT 'good',
-  eff_note          VARCHAR(120) NULL,
-  sort              INT NOT NULL DEFAULT 0,
-  is_active         TINYINT(1) NOT NULL DEFAULT 1,
-  INDEX idx_media_channel (channel, is_active, sort)
-) ENGINE=InnoDB;
-
+-- ---------------------------------------------------------------- campaigns
 -- 어드민이 발급하는 캠페인 슬롯. slot_no 는 계정마다 1부터.
 -- pending(등록 대기) → 사용자가 키워드·상품 등록 시 running. track_id = rankserver 슬롯 id (콜백 매핑 키).
 CREATE TABLE IF NOT EXISTS campaigns (
@@ -55,7 +29,6 @@ CREATE TABLE IF NOT EXISTS campaigns (
   slot_no          INT NOT NULL,
   user_id          INT NOT NULL,
   channel          ENUM('store') NOT NULL DEFAULT 'store',
-  media_id         INT NOT NULL,
   status           ENUM('pending','running','done','stopped') NOT NULL DEFAULT 'pending',
   product_name     VARCHAR(120) NULL,
   target_url       VARCHAR(500) NULL,
@@ -64,8 +37,6 @@ CREATE TABLE IF NOT EXISTS campaigns (
   warn_words       VARCHAR(300) NULL,
   start_date       DATE NOT NULL,
   end_date         DATE NOT NULL,
-  daily_qty        INT NOT NULL,
-  total_qty        INT NOT NULL,
   rank_start       INT NULL,
   rank_now         INT NULL,
   track_id         INT NULL,
@@ -77,15 +48,13 @@ CREATE TABLE IF NOT EXISTS campaigns (
   INDEX idx_campaign_user (user_id, channel, status),
   INDEX idx_campaign_status (status, created_at),
   INDEX idx_campaign_track (track_id, status),
-  FOREIGN KEY (user_id) REFERENCES users(id),
-  FOREIGN KEY (media_id) REFERENCES media(id)
+  FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS campaign_daily (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   campaign_id INT NOT NULL,
   date        DATE NOT NULL,
-  done_qty    INT NOT NULL DEFAULT 0,
   rank        INT NULL,
   UNIQUE KEY uq_campaign_daily (campaign_id, date),
   FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE

@@ -1,29 +1,134 @@
-{% extends "layout/base.html" %}
-{% block title %}로그인{% endblock %}
-{% block content %}
-<div style="max-width:400px;margin:64px auto 0">
-  <div class="card" style="padding:36px 32px 28px;text-align:center">
-    <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding-bottom:8px">
-      <img src="{{ url_for('static', filename='img/logo-tripleup.svg') }}" alt="{{ APP_NAME }}" style="height:34px;width:auto">
-      <span style="font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.02em;line-height:1">트리플업</span>
-    </div>
-    <p class="thin" style="margin-bottom:22px">쇼핑 캠페인 · 순위 관리</p>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>로그인 — {{ APP_NAME }}</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo-tripleup.svg') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font,'Pretendard Variable',sans-serif);min-height:100vh;
+       background:radial-gradient(1200px 800px at 50% 40%, #2a2660 0%, #16143a 45%, #0d0b26 100%);
+       color:#fff;overflow:hidden;display:grid;place-items:center}
+  /* 별자리 배경 */
+  .sky{position:fixed;inset:0;overflow:hidden;z-index:0}
+  .sky .orbit{position:absolute;border:1px solid rgba(150,140,230,.10);border-radius:50%}
+  .sky .o1{width:1100px;height:1100px;left:50%;top:44%;transform:translate(-50%,-50%)}
+  .sky .o2{width:1600px;height:1600px;left:50%;top:44%;transform:translate(-50%,-50%);border-style:dashed;border-color:rgba(150,140,230,.06)}
+  .star{position:absolute;border-radius:50%;background:#fff;
+        box-shadow:0 0 12px 4px rgba(200,200,255,.55),0 0 30px 10px rgba(140,130,240,.35);animation:tw 3s ease-in-out infinite}
+  @keyframes tw{0%,100%{opacity:.85}50%{opacity:.35}}
+  .dot{position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(180,175,220,.5)}
+  .sky svg{position:absolute;inset:0;width:100%;height:100%}
+  .sky svg line{stroke:rgba(180,175,235,.35);stroke-width:1.2;stroke-dasharray:3 4}
 
-    <form method="post" action="/auth/login{% if next_url %}?next={{ next_url | urlencode }}{% endif %}" style="text-align:left">
-      <div class="f"><input class="in" type="text" name="username" placeholder="아이디" required autocomplete="username" autofocus></div>
-      <div class="f"><input class="in" type="password" name="password" placeholder="비밀번호" required autocomplete="current-password"></div>
-      <button class="btn pri lg" type="submit" style="width:100%">로그인</button>
+  .wrap{position:relative;z-index:1;width:100%;max-width:400px;padding:20px}
+  .card{background:#fbfbfe;color:#1a1730;border-radius:18px;padding:30px 30px 26px;
+        box-shadow:0 30px 70px rgba(10,8,40,.55)}
+  .brand{display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:20px}
+  .brand img{height:30px}
+  .brand b{font-size:22px;font-weight:800;letter-spacing:-.02em;color:#1a1730}
+  .greet{background:#f2f1fb;border-radius:12px;padding:14px 16px;margin-bottom:20px}
+  .greet b{display:block;font-size:14px;margin-bottom:4px}
+  .greet span{font-size:12.5px;color:#6b6788}
+  label.fl{display:block;font-size:12.5px;font-weight:700;color:#3b3760;margin:0 0 6px 2px}
+  .f{margin-bottom:14px}
+  .inp{position:relative}
+  .inp input{width:100%;height:46px;border:1px solid #e3e1f0;border-radius:10px;padding:0 42px 0 14px;
+             font-size:14px;background:#fff;color:#1a1730;outline:none;transition:.15s}
+  .inp input:focus{border-color:#6c5ce7;box-shadow:0 0 0 3px rgba(108,92,231,.15)}
+  .eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:0;cursor:pointer;
+       color:#9c98b5;padding:6px;display:grid;place-items:center}
+  .remember{display:flex;align-items:center;gap:7px;font-size:13px;color:#4b4770;margin:2px 0 18px 2px;cursor:pointer;user-select:none}
+  .remember input{width:16px;height:16px;accent-color:#6c5ce7}
+  .btn-login{width:100%;height:48px;border:0;border-radius:10px;cursor:pointer;font-size:15px;font-weight:800;color:#fff;
+             background:linear-gradient(90deg,#6c5ce7,#8b5cf6 60%,#a855f7)}
+  .btn-login:hover{filter:brightness(1.05)}
+  .foot{text-align:center;font-size:12px;color:#8b88a5;margin-top:14px}
+  /* 토스트 */
+  .toast{position:fixed;top:16px;right:16px;z-index:10;display:flex;align-items:center;gap:8px;
+         background:#fff;color:#1a1730;border-radius:10px;padding:11px 16px;font-size:13.5px;font-weight:600;
+         box-shadow:0 10px 30px rgba(10,8,40,.35)}
+  .toast .ic{width:18px;height:18px;border-radius:50%;background:#16a34a;color:#fff;display:grid;place-items:center;font-size:12px;flex:none}
+  .dev{border-top:1px solid #eceaf5;margin-top:18px;padding-top:14px;text-align:center}
+  .dev a{display:inline-block;margin:0 4px;font-size:12px;color:#6c5ce7;text-decoration:none;border:1px solid #e3e1f0;border-radius:8px;padding:5px 10px}
+</style>
+</head>
+<body>
+{% with msgs = get_flashed_messages() %}{% if msgs %}
+  <div class="toast"><span class="ic">✓</span>{{ msgs[0] }}</div>
+{% endif %}{% endwith %}
+
+<div class="sky">
+  <div class="orbit o1"></div><div class="orbit o2"></div>
+  {# 별자리: 트리플업(상승) 라인 + 반짝이는 별 #}
+  <svg viewBox="0 0 1920 980" preserveAspectRatio="xMidYMid slice">
+    <line x1="300" y1="640" x2="620" y2="150"/>
+    <line x1="620" y1="150" x2="1370" y2="255"/>
+    <line x1="1370" y1="255" x2="1600" y2="470"/>
+    <line x1="1600" y1="470" x2="1810" y2="620"/>
+    <line x1="620" y1="150" x2="740" y2="470"/>
+  </svg>
+  <div class="star" style="left:16%;top:65%;width:9px;height:9px"></div>
+  <div class="star" style="left:32%;top:15%;width:15px;height:15px"></div>
+  <div class="star" style="left:71%;top:26%;width:11px;height:11px"></div>
+  <div class="star" style="left:83%;top:48%;width:9px;height:9px"></div>
+  <div class="star" style="left:94%;top:63%;width:17px;height:17px"></div>
+  <div class="star" style="left:38%;top:48%;width:8px;height:8px"></div>
+  <div class="dot" style="left:22%;top:20%"></div><div class="dot" style="left:14%;top:44%"></div>
+  <div class="dot" style="left:48%;top:78%"></div><div class="dot" style="left:60%;top:30%"></div>
+  <div class="dot" style="left:78%;top:74%"></div><div class="dot" style="left:88%;top:22%"></div>
+  <div class="dot" style="left:8%;top:70%"></div><div class="dot" style="left:66%;top:60%"></div>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <div class="brand"><img src="{{ url_for('static', filename='img/logo-tripleup.svg') }}" alt=""><b>트리플업</b></div>
+    <div class="greet"><b>안녕하세요, 트리플업입니다.</b><span>쇼핑 순위 관리 서비스 이용을 위해 로그인 해주세요.</span></div>
+    <form method="post" action="/auth/login{% if next_url %}?next={{ next_url | urlencode }}{% endif %}">
+      <div class="f"><label class="fl">아이디</label>
+        <div class="inp"><input type="text" id="username" name="username" required autocomplete="username" autofocus></div>
+      </div>
+      <div class="f"><label class="fl">비밀번호</label>
+        <div class="inp"><input type="password" id="password" name="password" required autocomplete="current-password">
+          <button class="eye" type="button" id="eye" aria-label="비밀번호 표시">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <label class="remember"><input type="checkbox" id="remember">아이디 기억하기</label>
+      <button class="btn-login" type="submit">로그인</button>
     </form>
-    <p class="thin" style="font-size:12px;margin-top:14px">계정은 관리자가 발급합니다. 발급 문의는 담당자에게 연락해주세요.</p>
-
+    <div class="foot">계정은 관리자가 발급합니다. 발급 문의는 담당자에게 연락해주세요.</div>
     {% if dev_mode %}
-    <div style="border-top:1px solid var(--border);margin:20px 0 14px"></div>
-    <div class="thin" style="font-size:12px;margin-bottom:8px">개발용 로그인 <span style="color:var(--warn)">(DEV_LOGIN=1 · DEBUG 전용)</span></div>
-    <div style="display:flex;gap:6px;justify-content:center">
-      <a class="btn sec sm" href="/auth/dev-login?as=user{% if next_url %}&next={{ next_url | urlencode }}{% endif %}">일반(demo)</a>
-      <a class="btn sec sm" href="/auth/dev-login?as=admin">관리자(admin)</a>
+    <div class="dev">
+      <span style="font-size:11px;color:#b0adc4">개발용</span><br>
+      <a href="/auth/dev-login?as=user{% if next_url %}&next={{ next_url | urlencode }}{% endif %}">일반(demo)</a>
+      <a href="/auth/dev-login?as=admin">관리자(admin)</a>
     </div>
     {% endif %}
   </div>
 </div>
-{% endblock %}
+
+<script>
+(function () {
+  var u = document.getElementById('username'), r = document.getElementById('remember');
+  try {
+    var saved = localStorage.getItem('tripleup_id');
+    if (saved) { u.value = saved; r.checked = true; document.getElementById('password').focus(); }
+  } catch (e) {}
+  document.querySelector('form').addEventListener('submit', function () {
+    try {
+      if (r.checked) localStorage.setItem('tripleup_id', u.value.trim());
+      else localStorage.removeItem('tripleup_id');
+    } catch (e) {}
+  });
+  var eye = document.getElementById('eye'), pw = document.getElementById('password');
+  eye.addEventListener('click', function () { pw.type = pw.type === 'password' ? 'text' : 'password'; });
+})();
+</script>
+</body>
+</html>

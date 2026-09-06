@@ -4,7 +4,7 @@ CHANNEL_LABEL = {"store": "쇼핑·스토어"}
 CHANNEL_CLASS = {"store": "c-store"}
 
 # pending = 어드민이 발급한 빈 캠페인(등록 대기). 사용자가 키워드·상품을 등록하면 running.
-STATUS_LABEL = {"pending": "등록 대기", "running": "진행", "done": "완료", "stopped": "중단"}
+STATUS_LABEL = {"pending": "등록 대기", "running": "정상", "done": "완료", "stopped": "중단"}
 STATUS_CLASS = {"pending": "s-wait", "running": "s-run", "done": "s-done", "stopped": "s-stop"}
 STATUS_ORDER = ["pending", "running", "done", "stopped"]
 

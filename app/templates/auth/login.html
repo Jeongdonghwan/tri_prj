@@ -11,19 +11,19 @@
 <style>
   *{box-sizing:border-box}
   body{margin:0;font-family:var(--font,'Pretendard Variable',sans-serif);min-height:100vh;
-       background:radial-gradient(1200px 800px at 50% 40%, #2a2660 0%, #16143a 45%, #0d0b26 100%);
-       color:#fff;overflow:hidden;display:grid;place-items:center}
-  /* 별자리 배경 */
-  .sky{position:fixed;inset:0;overflow:hidden;z-index:0}
-  .sky .orbit{position:absolute;border:1px solid rgba(150,140,230,.10);border-radius:50%}
-  .sky .o1{width:1100px;height:1100px;left:50%;top:44%;transform:translate(-50%,-50%)}
-  .sky .o2{width:1600px;height:1600px;left:50%;top:44%;transform:translate(-50%,-50%);border-style:dashed;border-color:rgba(150,140,230,.06)}
-  .star{position:absolute;border-radius:50%;background:#fff;
-        box-shadow:0 0 12px 4px rgba(200,200,255,.55),0 0 30px 10px rgba(140,130,240,.35);animation:tw 3s ease-in-out infinite}
-  @keyframes tw{0%,100%{opacity:.85}50%{opacity:.35}}
-  .dot{position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(180,175,220,.5)}
-  .sky svg{position:absolute;inset:0;width:100%;height:100%}
-  .sky svg line{stroke:rgba(180,175,235,.35);stroke-width:1.2;stroke-dasharray:3 4}
+       background:#0e0b28;color:#fff;overflow:hidden;display:grid;place-items:center}
+  /* 움직이는 오로라 그라데이션 + 떠다니는 빛망울 */
+  .sky{position:fixed;inset:0;overflow:hidden;z-index:0;
+       background:linear-gradient(120deg,#1a1548,#241a5e,#3a2170,#1a2a63,#1a1548);
+       background-size:400% 400%;animation:aurora 18s ease infinite}
+  @keyframes aurora{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  .blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.55;animation:float 16s ease-in-out infinite}
+  .b1{width:420px;height:420px;background:#7c5cff;left:-80px;top:-60px}
+  .b2{width:360px;height:360px;background:#4f7cff;right:-60px;top:20%;animation-duration:20s;animation-delay:-4s}
+  .b3{width:480px;height:480px;background:#a855f7;left:20%;bottom:-140px;animation-duration:22s;animation-delay:-8s}
+  .b4{width:300px;height:300px;background:#22d3ee;right:14%;bottom:-40px;opacity:.35;animation-duration:24s;animation-delay:-2s}
+  @keyframes float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,-30px) scale(1.12)}66%{transform:translate(-30px,25px) scale(.92)}}
+  .grain{position:absolute;inset:0;background:radial-gradient(circle at 50% 40%, transparent 55%, rgba(8,6,26,.55) 100%)}
 
   .wrap{position:relative;z-index:1;width:100%;max-width:400px;padding:20px}
   .card{background:#fbfbfe;color:#1a1730;border-radius:18px;padding:30px 30px 26px;
@@ -63,25 +63,8 @@
 {% endif %}{% endwith %}
 
 <div class="sky">
-  <div class="orbit o1"></div><div class="orbit o2"></div>
-  {# 별자리: 트리플업(상승) 라인 + 반짝이는 별 #}
-  <svg viewBox="0 0 1920 980" preserveAspectRatio="xMidYMid slice">
-    <line x1="300" y1="640" x2="620" y2="150"/>
-    <line x1="620" y1="150" x2="1370" y2="255"/>
-    <line x1="1370" y1="255" x2="1600" y2="470"/>
-    <line x1="1600" y1="470" x2="1810" y2="620"/>
-    <line x1="620" y1="150" x2="740" y2="470"/>
-  </svg>
-  <div class="star" style="left:16%;top:65%;width:9px;height:9px"></div>
-  <div class="star" style="left:32%;top:15%;width:15px;height:15px"></div>
-  <div class="star" style="left:71%;top:26%;width:11px;height:11px"></div>
-  <div class="star" style="left:83%;top:48%;width:9px;height:9px"></div>
-  <div class="star" style="left:94%;top:63%;width:17px;height:17px"></div>
-  <div class="star" style="left:38%;top:48%;width:8px;height:8px"></div>
-  <div class="dot" style="left:22%;top:20%"></div><div class="dot" style="left:14%;top:44%"></div>
-  <div class="dot" style="left:48%;top:78%"></div><div class="dot" style="left:60%;top:30%"></div>
-  <div class="dot" style="left:78%;top:74%"></div><div class="dot" style="left:88%;top:22%"></div>
-  <div class="dot" style="left:8%;top:70%"></div><div class="dot" style="left:66%;top:60%"></div>
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div>
+  <div class="grain"></div>
 </div>
 
 <div class="wrap">

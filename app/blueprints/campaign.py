@@ -117,6 +117,24 @@ def fill(channel, campaign_id):
     return redirect(url_for("campaign.manage", channel=channel, open=c["id"]))
 
 
+@bp.route("/<channel>/status")
+@login_required
+def status(channel):
+    """목록 자동 갱신용: 내 캠페인들의 순위·상품명 스냅샷. ?ids=1,2,3 (새로고침 없이 셀 채움)"""
+    from flask import jsonify
+    _channel(channel)
+    ids = [int(i) for i in (request.args.get("ids") or "").split(",") if i.isdigit()][:50]
+    out = []
+    for cid in ids:
+        c = campaign_model.get(cid)
+        if not c or c["user_id"] != g.user["id"] or c["channel"] != channel:
+            continue
+        out.append({"id": c["id"], "status": c["status"], "rankStart": c["rank_start"],
+                    "rankNow": c["rank_now"], "productName": c["product_name"],
+                    "trackStatus": c["track_status"]})
+    return jsonify({"ok": True, "rows": out})
+
+
 @bp.route("/<channel>/<int:campaign_id>/ranks")
 @login_required
 def ranks(channel, campaign_id):

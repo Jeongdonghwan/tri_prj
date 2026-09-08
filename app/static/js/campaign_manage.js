@@ -80,4 +80,44 @@
     var row = document.querySelector('tr[data-open="' + window.OPEN_ID + '"]');
     if (row) { row.classList.add('sel'); row.scrollIntoView({block: 'center', behavior: 'smooth'}); }
   }
+
+  // ── 조회 대기중 행 자동 갱신: 순위/상품명이 도착하면 새로고침 없이 셀을 채운다 ──
+  (function livePoll() {
+    function pendingRows() {
+      return Array.prototype.filter.call(document.querySelectorAll('tr[data-open]'), function (tr) {
+        var rankTd = tr.querySelector('td[data-l="순위"]');
+        var nameTd = tr.querySelector('td[data-l="상품명"]');
+        var waitingRank = rankTd && rankTd.querySelector('.waiting');
+        var waitingName = nameTd && nameTd.textContent.indexOf('자동 등록') !== -1;
+        return waitingRank || waitingName;
+      });
+    }
+    var tries = 0;
+    function tick() {
+      var rows = pendingRows();
+      if (!rows.length || tries++ > 60) return;          // 최대 ~4분
+      var ids = rows.map(function (tr) { return tr.dataset.open; }).join(',');
+      fetch(window.RANKS_BASE + 'status?ids=' + ids, { credentials: 'include' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          (d.rows || []).forEach(function (c) {
+            var tr = document.querySelector('tr[data-open="' + c.id + '"]');
+            if (!tr) return;
+            var rankTd = tr.querySelector('td[data-l="순위"]');
+            var nameTd = tr.querySelector('td[data-l="상품명"]');
+            if (rankTd && rankTd.querySelector('.waiting') && c.rankNow !== null && c.rankNow !== undefined) {
+              var d0 = (c.rankStart || c.rankNow) - c.rankNow;
+              rankTd.innerHTML = '<span class="rank num">' + (c.rankStart || c.rankNow) + ' → <b>' + c.rankNow + '</b>' +
+                (d0 > 0 ? '<span class="up">▲' + d0 + '</span>' : d0 < 0 ? '<span class="dn">▼' + (-d0) + '</span>' : '') + '</span>';
+            }
+            if (nameTd && c.productName && nameTd.textContent.indexOf('자동 등록') !== -1) {
+              nameTd.innerHTML = '<b title="' + c.productName.replace(/"/g, '&quot;') + '">' + c.productName + '</b>';
+            }
+          });
+          setTimeout(tick, 4000);
+        })
+        .catch(function () { setTimeout(tick, 8000); });
+    }
+    if (pendingRows().length) setTimeout(tick, 2500);
+  })();
 })();

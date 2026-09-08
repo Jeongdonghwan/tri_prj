@@ -20,6 +20,8 @@ class Config:
 
     # Service name is managed in exactly one place (spec 0).
     APP_NAME = os.getenv("APP_NAME", "트리플업")
+    # 사이트 스킨: tripleup(다크 사이드바) | biz(화이트 탑바). 로고/테마 CSS 파일명에 사용
+    SITE_THEME = os.getenv("SITE_THEME", "tripleup")
 
     PER_PAGE = 20
 

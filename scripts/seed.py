@@ -54,7 +54,7 @@ FORBIDDEN = [
 ]
 
 NOTICES = [
-    ("update", "트리플업 오픈 안내", 1),
+    ("update", f"{Config.APP_NAME} 오픈 안내", 1),
     ("update", "캠페인 등록 시 순위 추적이 자동으로 시작됩니다", 0),
     ("guide", "쇼핑 캠페인 등록 가이드", 0),
 ]
@@ -73,7 +73,7 @@ def seed():
     # 계정 (관리자 발급형 — 회원가입 없음)
     cur.executemany(
         "INSERT INTO users (username, password_hash, nickname, role, company) VALUES (%s,%s,%s,%s,%s)",
-        [("admin", generate_password_hash("admin1234!"), "운영팀", "admin", "트리플업"),
+        [("admin", generate_password_hash("admin1234!"), "운영팀", "admin", Config.APP_NAME),
          ("demo", generate_password_hash("demo1234!"), "데모계정", "user", "데모상사")],
     )
     admin_id = 1

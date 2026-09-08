@@ -75,6 +75,9 @@ aside.sidebar .nav-admin.show{display:block}
 .diffold{color:var(--text-3);text-decoration:line-through}
 .diffarrow{color:var(--text-3);flex:none}
 .diffnew{font-weight:700;color:var(--text)}
+a.diffnew{color:var(--accent)}
+a.diffold,a.diffnew{text-decoration:underline;text-underline-offset:2px}
+a.diffold{text-decoration:underline line-through}
 .diffnew-tag{font-size:10px;font-weight:700;color:var(--success);background:var(--success-soft);border-radius:5px;padding:1px 5px}
 
 /* ---- 발급 모달 기간 프리셋 ---- */

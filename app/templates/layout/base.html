@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{{ crumb_label }}{% endblock %} — {{ APP_NAME }}</title>
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo-tripleup.svg') }}">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo-' + config.SITE_THEME + '.svg') }}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/theme-tripleup.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme-' + config.SITE_THEME + '.css') }}">
 {% block head %}{% endblock %}
 </head>
 <body{% if is_admin_path %} class="admin"{% endif %}>

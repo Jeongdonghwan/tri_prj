@@ -37,8 +37,13 @@
           {% for ch in r.changes %}
             <div class="diffrow">
               <span class="difflbl">{{ ch.label }}</span>
-              {% if ch.old %}<span class="diffold">{{ ch.old[:40] }}{% if ch.old|length > 40 %}…{% endif %}</span><i data-lucide="arrow-right" class="i i14 diffarrow"></i>{% endif %}
-              <span class="diffnew">{{ ch.new[:40] if ch.new else '(없음)' }}{% if ch.new and ch.new|length > 40 %}…{% endif %}</span>
+              {% if ch.old %}
+                {% if ch.old.startswith('http') %}<a class="diffold lnk" href="{{ ch.old }}" target="_blank" rel="noopener">{{ ch.old[:40] }}{% if ch.old|length > 40 %}…{% endif %}</a>
+                {% else %}<span class="diffold">{{ ch.old[:40] }}{% if ch.old|length > 40 %}…{% endif %}</span>{% endif %}
+                <i data-lucide="arrow-right" class="i i14 diffarrow"></i>
+              {% endif %}
+              {% if ch.new and ch.new.startswith('http') %}<a class="diffnew lnk" href="{{ ch.new }}" target="_blank" rel="noopener">{{ ch.new[:40] }}{% if ch.new|length > 40 %}…{% endif %}</a>
+              {% else %}<span class="diffnew">{{ ch.new[:40] if ch.new else '(없음)' }}{% if ch.new and ch.new|length > 40 %}…{% endif %}</span>{% endif %}
               {% if not ch.old %}<span class="diffnew-tag">신규</span>{% endif %}
             </div>
           {% endfor %}

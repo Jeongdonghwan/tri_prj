@@ -1,0 +1,120 @@
+/* 비즈(biz) 테마 — 화이트 톤 + 밝은 블루 액센트 + 상단 네비게이션 바 레이아웃.
+   tokens/base/components.css 뒤에 로드해 덮어쓴다. 데스크톱(≥768px)은 사이드바를
+   가로 탑바로 변환하고, 모바일은 base.css 의 슬라이드 드로어를 그대로 쓴다. */
+:root{
+  --sidebar-bg:#ffffff;--sidebar-text:#4B5563;--sidebar-active-bg:#EFF4FF;--sidebar-line:#E7EAF0;
+  --bg:#F6F8FB;--surface:#fff;--border:#E7EAF0;
+  --accent:#2563EB;--accent-hover:#1D4ED8;--accent-soft:#EFF4FF;
+  --lime:#2563EB;--lime-ink:#fff;                 /* 트리플업 라임 참조 컴포넌트 호환 */
+  --radius:12px;--shadow:0 1px 2px rgba(15,23,42,.04),0 6px 18px rgba(15,23,42,.05);
+}
+body{background:var(--bg)}
+
+/* ---- 탑바 레이아웃 (데스크톱) : 사이드바 → 상단 가로 바 ---- */
+@media (min-width:768px){
+  .app{display:block}
+  .sidebar{position:sticky;top:0;z-index:20;height:60px;width:100%;flex-direction:row;align-items:center;
+           gap:6px;padding:0 26px;overflow:visible;border-bottom:1px solid var(--sidebar-line);
+           box-shadow:0 1px 0 rgba(15,23,42,.02)}
+  body.admin .sidebar{background:#fff;border-bottom:2px solid #F59E0B}
+  .logo{padding:0 18px 0 0;font-size:20px;gap:8px}
+  .logo .lsym{height:26px!important}
+  .logo .ltxt{font-size:20px;color:#111827;padding-top:0}
+  .logo small{margin-left:6px;color:#F59E0B;font-weight:700}
+  .sidebar .nav{flex:1 1 auto;display:flex;flex-direction:row;align-items:center;gap:2px;overflow:visible;min-height:0}
+  .sidebar .nav-user,.sidebar .nav-admin{display:flex}
+  .sidebar .nav .nav-sec{margin-top:0;display:flex;flex-direction:row;align-items:center;gap:2px}
+  .sidebar .nav-sec>h6{display:none}
+  .sidebar .nav a,.sidebar .nav button{width:auto;padding:8px 13px;font-size:14.5px;font-weight:600;
+           border-radius:9px;color:var(--sidebar-text);white-space:nowrap}
+  .sidebar .nav .i{width:17px;height:17px}
+  .sidebar .nav a:hover,.sidebar .nav button:hover{background:var(--sidebar-active-bg);color:var(--accent)}
+  .sidebar .nav a.on{background:var(--accent)!important;color:#fff!important;font-weight:700}
+  .sidebar .nav a.on .i{color:#fff}
+  /* 하위 메뉴는 현재 플랫 구조라 미사용 — 혹시 생기면 드롭다운 */
+  .sidebar .sub{display:none;position:absolute;top:58px;background:#fff;border:1px solid var(--border);
+                border-radius:10px;box-shadow:var(--shadow);padding:6px;margin:0}
+  .sidebar .open+.sub{display:block}
+  /* 계정 영역: 탑바 오른쪽 끝 */
+  .side-bottom{margin:0 0 0 auto;display:flex;align-items:center;gap:8px;padding:0;border:0}
+  .side-bottom .point-card{margin:0;padding:5px 12px;border-radius:9px;background:var(--accent-soft);border:0}
+  .side-bottom .point-card .lbl{display:none}
+  .side-bottom .point-card .val{color:var(--accent);font-size:13.5px;font-weight:700}
+  .side-bottom .point-card .val i{color:#7C8AA5;font-size:11px}
+  .side-bottom .side-foot{margin:0;padding:0;border:0;gap:2px}
+  .side-bottom .side-foot a{color:var(--sidebar-text);font-size:13px;padding:7px 9px;border-radius:8px;display:inline-flex;align-items:center;gap:6px}
+  .side-bottom .side-foot a:hover{background:var(--sidebar-active-bg);color:var(--accent)}
+  /* 본문: 탑바 아래 중앙 정렬 컨테이너 */
+  .main{max-width:1240px;margin:0 auto}
+  .header{top:60px;background:transparent;border-bottom:0;padding:0 28px;height:48px}
+  .paybar{left:0}
+}
+
+/* 모바일 드로어(라이트) 보정 */
+@media (max-width:767px){
+  .sidebar{background:#fff;border-right:1px solid var(--sidebar-line)}
+  .logo .ltxt{color:#111827}
+  .nav a.on{background:var(--accent)!important;color:#fff!important}
+  .side-foot a{color:var(--sidebar-text)}
+}
+body.admin .nav-user{display:flex!important}
+body.admin #pointCard{display:block!important}
+aside.sidebar .nav-admin.show{display:flex}
+@media (max-width:767px){body.admin .nav-user{display:block!important}aside.sidebar .nav-admin.show{display:block}}
+
+/* ---- 카드 · 표면 : 얇은 보더 + 은은한 그림자, 각진 라운드 ---- */
+.card{border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow)}
+.pcard{border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow)}
+.pcard:hover{border-color:var(--accent)}
+.btn.pri{border-radius:9px;background:var(--accent)}
+.btn.pri:hover{background:var(--accent-hover)}
+.btn.sec{border-radius:9px}
+.tabs button{border-radius:9px}
+.st{border-radius:7px}
+
+/* ---- 대시보드 : 통계 카드 위 · 프로모는 밝은 블루 그라데이션 ---- */
+.tw-welcome{display:flex;align-items:center;gap:10px;margin:8px 0 20px}
+.tw-welcome h1{font-size:23px;font-weight:800;letter-spacing:-.02em}
+.tw-welcome .thin{margin-left:auto}
+.tw-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.tw-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
+         padding:16px 18px;display:flex;align-items:center;gap:14px;border-left:4px solid var(--accent)}
+.tw-stat:nth-child(2){border-left-color:#10B981}
+.tw-stat:nth-child(3){border-left-color:#F59E0B}
+.tw-stat .ic{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;flex:none}
+.tw-stat .ic.a{background:var(--accent-soft);color:var(--accent)}
+.tw-stat .ic.b{background:#ECFDF5;color:#059669}
+.tw-stat .ic.c{background:#FFFBEB;color:#B45309}
+.tw-stat b{font-size:22px;line-height:1.1}
+.tw-stat span{display:block;font-size:12px;color:var(--text-2)}
+.tw-promo{background:linear-gradient(135deg,#EFF6FF,#E0F2FE);border:1px solid #DBEAFE;border-radius:var(--radius);
+          color:#0F2657;padding:22px 20px;box-shadow:var(--shadow);margin-bottom:14px}
+.tw-promo h3{font-size:16px;font-weight:800;margin-bottom:6px}
+.tw-promo p{font-size:12.5px;color:#3B5583;line-height:1.6;margin-bottom:14px}
+.tw-promo .btn{background:var(--accent);color:#fff;border:none;font-weight:700;border-radius:9px}
+@media (max-width:900px){.tw-stats{grid-template-columns:1fr}}
+
+/* ---- 캠페인 관리: 수정/등록 버튼 상시 노출 ---- */
+.ctable.ref .rowact button{opacity:1!important}
+
+/* ---- 조회 대기중 스피너 ---- */
+.waiting{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--accent);font-weight:600}
+.waiting .spin{width:13px;height:13px;border:2px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;animation:bz-spin .7s linear infinite;flex:none}
+@keyframes bz-spin{to{transform:rotate(360deg)}}
+
+/* ---- 변경 이력 diff ---- */
+.difflist{display:flex;flex-direction:column;gap:5px}
+.diffrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px}
+.difflbl{flex:none;min-width:52px;font-size:11px;font-weight:700;color:var(--text-3);background:var(--bg);border-radius:5px;padding:2px 6px}
+.diffold{color:var(--text-3);text-decoration:line-through}
+.diffarrow{color:var(--text-3);flex:none}
+.diffnew{font-weight:700;color:var(--text)}
+a.diffnew{color:var(--accent)}
+a.diffold,a.diffnew{text-decoration:underline;text-underline-offset:2px}
+a.diffold{text-decoration:underline line-through}
+.diffnew-tag{font-size:10px;font-weight:700;color:var(--success);background:var(--success-soft);border-radius:5px;padding:1px 5px}
+
+/* ---- 발급 모달 기간 프리셋 ---- */
+.daypreset{display:flex;gap:6px;margin-top:8px}
+.daypreset button{flex:1;padding:8px 0;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text-2);font-weight:600;font-size:13px;cursor:pointer}
+.daypreset button.on{background:var(--accent);border-color:var(--accent);color:#fff}

@@ -12,7 +12,7 @@
   {% endif %}
 {% endmacro %}
 <aside class="sidebar">
-  <a class="logo" href="/"><img class="lsym" src="{{ url_for('static', filename='img/logo-tripleup.svg') }}" alt="트리플업" style="height:28px"><span class="ltxt">트리플업</span>{% if is_admin_path %}<small>admin</small>{% endif %}</a>
+  <a class="logo" href="/"><img class="lsym" src="{{ url_for('static', filename='img/logo-' + config.SITE_THEME + '.svg') }}" alt="{{ APP_NAME }}" style="height:28px"><span class="ltxt">{{ APP_NAME }}</span>{% if is_admin_path %}<small>admin</small>{% endif %}</a>
   <nav class="nav">
    <div class="nav-user">
     <div class="nav-sec">{% for sec in MENU.user %}{% for item in sec['items'] %}{{ nav_item(item) }}{% endfor %}{% endfor %}</div>
@@ -34,7 +34,7 @@
       <a href="/auth/logout"><i data-lucide="log-out" class="i i14"></i>로그아웃</a>
     </div>
     {% else %}
-    <a class="point-card" href="/auth/login"><div class="lbl">트리플업</div><div class="val">로그인이 필요합니다</div></a>
+    <a class="point-card" href="/auth/login"><div class="lbl">{{ APP_NAME }}</div><div class="val">로그인이 필요합니다</div></a>
     <div class="side-foot"><a href="/auth/login"><i data-lucide="log-in" class="i i14"></i>로그인</a></div>
     {% endif %}
   </div>

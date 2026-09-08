@@ -74,7 +74,7 @@
     <h3>슬롯 {{ r.slot_no }} {{ '등록' if r.status == 'pending' else '수정' }} <span class="thin">{{ r.start_date | fmt_date }}~{{ r.end_date | fmt_date }}</span></h3>
     <div class="f" style="margin-top:12px"><label>순위 키워드 *</label><input class="in" name="main_keyword" value="{{ r.main_keyword or '' }}" placeholder="예) 아우라 방향제" required></div>
     <div class="f"><label>상품 URL *</label><input class="in" name="target_url" value="{{ r.target_url or '' }}" placeholder="https://smartstore.naver.com/..." required><div class="hint">옵션 상품은 옵션 미선택 URL로 등록해주세요.</div></div>
-    <div class="f"><label>상품명 <small>선택 — 비우면 순위 조회 시 자동 등록</small></label><input class="in" name="product_name" value="{{ r.product_name or '' }}"></div>
+    <div class="f"><label>상품명 <small>{% if r.product_name %}현재: {{ r.product_name[:30] }}{% if r.product_name|length > 30 %}…{% endif %} — 비우면 유지, URL 변경 시 자동 갱신{% else %}선택 — 비우면 순위 조회 시 자동 등록{% endif %}</small></label><input class="in" name="product_name" placeholder="직접 지정할 때만 입력"></div>
     {% if r.status == 'running' %}<p class="thin" style="margin-bottom:10px">키워드나 URL을 바꾸면 순위 추적이 새로 시작됩니다.</p>{% endif %}
     <div style="display:flex;gap:8px"><button class="btn sec" type="button" data-close style="flex:1">취소</button><button class="btn pri" type="submit" style="flex:1">{{ '등록하고 추적 시작' if r.status == 'pending' else '수정 저장' }}</button></div>
   </form>

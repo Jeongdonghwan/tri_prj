@@ -61,10 +61,12 @@ def fill(campaign, user, data, batch_id=None):
     if campaign["status"] not in ("pending", "running"):
         raise CampaignError("등록 대기 또는 진행 중인 캠페인만 수정할 수 있습니다.")
     is_new = campaign["status"] == "pending"
-    # URL(상품)이 바뀌었는데 상품명은 모달에 프리필된 옛 값 그대로라면 → 비워서 새 상품 조회 시 자동 갱신
-    if (not is_new and campaign.get("target_url") != data["target_url"]
+    # 상품명 규칙: 입력값 > (빈 값 + URL 동일 → 기존 유지) > (빈 값 + URL 변경 → 새 상품 자동 등록 대기)
+    if not data.get("product_name") and not is_new and campaign.get("target_url") == data["target_url"]:
+        data["product_name"] = campaign.get("product_name")
+    elif (not is_new and campaign.get("target_url") != data["target_url"]
             and (data.get("product_name") or "") == (campaign.get("product_name") or "")):
-        data["product_name"] = None
+        data["product_name"] = None    # 프리필된 옛 이름 그대로 온 경우(구화면 호환)도 자동 갱신 대상
     changes = _build_changes(campaign, data, is_new)
     memo = "신규 등록" if is_new else ("수정" if changes else "변경 없음")
     campaign_model.update(campaign["id"], {
